@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Distribution Tracker — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Distribution Tracker</span>
+      <span class="topbar-subtitle">— Seed, Planting Materials &amp; Input Distribution Log</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<div class="modal-overlay hidden" id="dist-modal">
+  <div class="modal-box">
+    <div class="modal-header"><span id="modal-title">Record Distribution</span><button class="modal-close" onclick="closeModal('dist-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Input Type<span class="req">*</span></label>
+          <select id="d-type"><option>Seed</option><option>Planting Mat</option><option>Biofertilizer</option><option>BCA</option><option>Inorganic Fertilizer</option></select></div>
+        <div class="form-group"><label class="form-label">Product Name<span class="req">*</span></label>
+          <select id="d-product">
+            <option>Mungbean (Pag-asa 7)</option><option>Peanut</option><option>Watermelon</option><option>Onion</option>
+            <option>Ube (QES)</option><option>Ube (NVES)</option><option>Ube (NCES)</option><option>Ube (CVRC)</option>
+            <option>Ube (SCRC)</option><option>Ube (IES)</option><option>Biofertilizer (BFAR)</option>
+            <option>Trichoderma</option><option>Other BCA</option><option>Urea</option><option>Complete Fertilizer</option></select></div>
+        <div class="form-group"><label class="form-label">Beneficiary Name<span class="req">*</span></label><input id="d-bene-name" placeholder="Type name or select"></div>
+        <div class="form-group"><label class="form-label">RSBSA</label><input id="d-rsbsa"></div>
+        <div class="form-group"><label class="form-label">Province</label>
+          <select id="d-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="d-municipality"></div>
+        <div class="form-group"><label class="form-label">Quantity<span class="req">*</span></label><input id="d-qty" type="number" step="0.1" min="0" value="5"></div>
+        <div class="form-group"><label class="form-label">Unit</label>
+          <select id="d-unit"><option>kg</option><option>packs</option><option>pcs</option><option>bags</option><option>sachet</option><option>liters</option></select></div>
+        <div class="form-group"><label class="form-label">Distribution Date<span class="req">*</span></label><input id="d-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Focal Person</label><input id="d-focal" placeholder="Name of responsible person"></div>
+        <div class="form-group"><label class="form-label">Establishment Status (if visited)</label>
+          <select id="d-estab"><option value="">Not yet visited</option><option>Good</option><option>Fair</option><option>Poor</option></select></div>
+        <div class="form-group"><label class="form-label">Distribution Status</label>
+          <select id="d-status"><option>Distributed</option><option>Pending</option></select></div>
+      </div>
+      <input type="hidden" id="d-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('dist-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDist()">Save Record</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+let filterType='', filterProvince='', searchQ='';
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('distributions.html');
+  render();
+  document.getElementById('d-date').value = new Date().toISOString().split('T')[0];
+});
+
+function render() {
+  let dists = DB.get(DB.KEYS.DISTRIBUTIONS);
+  const all = dists;
+  const byType = t => all.filter(d=>d.inputType===t);
+  const seeds = byType('Seed').length + byType('Planting Mat').length;
+  const bios  = byType('Biofertilizer').length;
+  const bcas  = byType('BCA').length;
+  const ferts = byType('Inorganic Fertilizer').length;
+
+  if (filterType)     dists = dists.filter(d=>d.inputType===filterType);
+  if (filterProvince) dists = dists.filter(d=>d.province===filterProvince);
+  if (searchQ)        dists = dists.filter(d=>(d.beneficiaryName+d.municipality+d.product).toLowerCase().includes(searchQ.toLowerCase()));
+
+  const provinces = [...new Set(all.map(d=>d.province))];
+  const types     = ['Seed','Planting Mat','Biofertilizer','BCA','Inorganic Fertilizer'];
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Seeds / Planting Mat</div><div class="kpi-value">${seeds}</div><div class="kpi-sub">distribution events</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Biofertilizer</div><div class="kpi-value">${bios}</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">BCA</div><div class="kpi-value">${bcas}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Filtered Records</div><div class="kpi-value">${dists.length}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Distribution Records <small>${dists.length} shown</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input placeholder="Search…" style="width:180px" value="${searchQ}" oninput="searchQ=this.value;render()">
+          <select onchange="filterType=this.value;render()">
+            <option value="">All Types</option>
+            ${types.map(t=>`<option ${filterType===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+          <select onchange="filterProvince=this.value;render()">
+            <option value="">All Provinces</option>
+            ${provinces.map(p=>`<option ${filterProvince===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.DISTRIBUTIONS),'distributions.csv')">${ICONS.download} CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openDistModal()">${ICONS.plus} Add</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Province</th><th>Qty</th><th>Focal Person</th><th>Status</th><th>Establishment</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${dists.length===0?'<tr><td colspan="11" style="text-align:center;color:var(--gray-400)">No records</td></tr>':
+              dists.map(d=>`<tr>
+                <td>${fmt.date(d.distributionDate)}</td>
+                <td><span class="badge ${d.inputType==='BCA'?'blue':d.inputType==='Biofertilizer'?'green':'amber'}">${d.inputType}</span></td>
+                <td>${d.product}</td>
+                <td>${d.beneficiaryName}</td>
+                <td>${d.municipality}</td>
+                <td>${d.province}</td>
+                <td style="font-family:var(--font-mono)">${d.quantity} ${d.unit}</td>
+                <td style="font-size:.76rem">${d.focalPerson||'—'}</td>
+                <td>${fmt.statusBadge(d.status)}</td>
+                <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Pending</span>'}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-secondary btn-sm" onclick="editDist('${d.id}')">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" onclick="delDist('${d.id}')">${ICONS.trash}</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openDistModal() {
+  document.getElementById('modal-title').textContent = 'Record Distribution';
+  document.getElementById('d-edit-id').value='';
+  document.getElementById('d-bene-name').value='';
+  document.getElementById('d-rsbsa').value='';
+  document.getElementById('d-municipality').value='';
+  document.getElementById('d-focal').value='';
+  document.getElementById('d-qty').value='5';
+  document.getElementById('d-date').value=new Date().toISOString().split('T')[0];
+  openModal('dist-modal');
+}
+
+function editDist(id) {
+  const d = DB.get(DB.KEYS.DISTRIBUTIONS).find(x=>x.id===id);
+  if (!d) return;
+  document.getElementById('modal-title').textContent = 'Edit Distribution';
+  document.getElementById('d-edit-id').value=id;
+  document.getElementById('d-type').value=d.inputType;
+  document.getElementById('d-product').value=d.product;
+  document.getElementById('d-bene-name').value=d.beneficiaryName;
+  document.getElementById('d-rsbsa').value=d.rsbsa||'';
+  document.getElementById('d-province').value=d.province;
+  document.getElementById('d-municipality').value=d.municipality;
+  document.getElementById('d-qty').value=d.quantity;
+  document.getElementById('d-unit').value=d.unit;
+  document.getElementById('d-date').value=d.distributionDate;
+  document.getElementById('d-focal').value=d.focalPerson||'';
+  document.getElementById('d-estab').value=d.establishment||'';
+  document.getElementById('d-status').value=d.status;
+  openModal('dist-modal');
+}
+
+function saveDist() {
+  const name=document.getElementById('d-bene-name').value.trim();
+  const qty=+document.getElementById('d-qty').value;
+  const date=document.getElementById('d-date').value;
+  if(!name||!qty||!date){toast('Name, quantity, and date are required','error');return;}
+  const rec={
+    inputType:document.getElementById('d-type').value,
+    product:document.getElementById('d-product').value,
+    beneficiaryName:name,
+    beneficiaryId:'',
+    rsbsa:document.getElementById('d-rsbsa').value.trim(),
+    province:document.getElementById('d-province').value,
+    municipality:document.getElementById('d-municipality').value.trim(),
+    quantity:qty,
+    unit:document.getElementById('d-unit').value,
+    distributionDate:date,
+    focalPerson:document.getElementById('d-focal').value.trim(),
+    establishment:document.getElementById('d-estab').value,
+    status:document.getElementById('d-status').value,
+  };
+  const eid=document.getElementById('d-edit-id').value;
+  if(eid){DB.update(DB.KEYS.DISTRIBUTIONS,eid,rec);toast('Updated');}
+  else{DB.add(DB.KEYS.DISTRIBUTIONS,rec);toast('Distribution recorded');}
+  closeModal('dist-modal');render();
+}
+
+function delDist(id){
+  if(!confirm('Delete this record?'))return;
+  DB.remove(DB.KEYS.DISTRIBUTIONS,id);toast('Deleted');render();
+}
+</script>
+</body>
+</html>

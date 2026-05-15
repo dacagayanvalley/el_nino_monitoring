@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beneficiary Registry — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Beneficiary Registry</span>
+      <span class="topbar-subtitle">— Validated Farmer Beneficiaries</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<!-- Add/Edit modal -->
+<div class="modal-overlay hidden" id="bene-modal">
+  <div class="modal-box" style="max-width:780px">
+    <div class="modal-header"><span id="modal-title">Add Beneficiary</span><button class="modal-close" onclick="closeModal('bene-modal')">×</button></div>
+    <div class="modal-body">
+      <div style="background:var(--green-50);padding:8px 12px;border-radius:4px;font-size:.78rem;color:var(--green-800);margin-bottom:14px">
+        ⚠ Priority: Farmers cultivating <strong>0.5 hectare and below</strong>. Confirm municipality is on the validated list before adding.
+      </div>
+      <div class="form-grid cols-3">
+        <div class="form-group" style="grid-column:span 2"><label class="form-label">Full Name (Last, First, MI)<span class="req">*</span></label><input id="b-name"></div>
+        <div class="form-group"><label class="form-label">RSBSA Number</label><input id="b-rsbsa" placeholder="02-000-000"></div>
+        <div class="form-group"><label class="form-label">Sex<span class="req">*</span></label>
+          <select id="b-sex"><option>Female</option><option>Male</option><option>Prefer not to say</option></select></div>
+        <div class="form-group"><label class="form-label">Age Group<span class="req">*</span></label>
+          <select id="b-age"><option>18-35</option><option>36-59</option><option>60+</option></select></div>
+        <div class="form-group"><label class="form-label">Farm Size (ha)<span class="req">*</span></label><input id="b-farmsize" type="number" step="0.01" min="0.01" max="5" placeholder="e.g. 0.25"></div>
+        <div class="form-group"><label class="form-label">Province<span class="req">*</span></label>
+          <select id="b-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option><option>Aurora</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="b-municipality"></div>
+        <div class="form-group"><label class="form-label">Barangay</label><input id="b-barangay"></div>
+        <div class="form-group"><label class="form-label">Primary Crop<span class="req">*</span></label>
+          <select id="b-crop"><option>Mungbean</option><option>Peanut</option><option>Watermelon</option><option>Onion</option><option>Ube</option><option>Mango</option><option>Rice</option><option>Corn</option><option>High Value Crops</option></select></div>
+        <div class="form-group"><label class="form-label">FCA Name (or None)</label><input id="b-fca" value="None"></div>
+        <div class="form-group"><label class="form-label">Land Tenure</label>
+          <select id="b-tenure"><option>Owner</option><option>Tenant/Lessee</option><option>Other</option></select></div>
+      </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Interventions to Receive</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px" id="intervention-checks">
+        ${['Mungbean Seeds','Peanut Seeds','Watermelon Seeds','Onion Materials','Ube Materials','Mango Induction','Rain Shelter','INS-1hp','INS-2hp','INS-3hp','SPIS','Biofertilizer','BCA','POT/Zero Tillage'].map(v=>`
+          <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px">
+            <input type="checkbox" value="${v}" style="width:auto"> ${v}
+          </label>`).join('')}
+      </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">GEDSI Tags (Voluntary except Sex)</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-ip" type="checkbox" style="width:auto"> Indigenous Peoples (self-identified)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-pwd" type="checkbox" style="width:auto"> Person with Disability (voluntary)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-gida" type="checkbox" style="width:auto"> GIDA Location</label>
+      </div>
+      <input type="hidden" id="b-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bene-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBeneficiary()">Save Beneficiary</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+let filterSex='', filterProvince='', filterCrop='', searchQ='';
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('beneficiaries.html');
+  render();
+});
+
+function render() {
+  let benes = DB.get(DB.KEYS.BENEFICIARIES);
+  const total = benes.length;
+  const women = benes.filter(b=>b.sex==='Female').length;
+  const small = benes.filter(b=>b.farmSize<=0.5).length;
+
+  if (filterSex)      benes = benes.filter(b=>b.sex===filterSex);
+  if (filterProvince) benes = benes.filter(b=>b.province===filterProvince);
+  if (filterCrop)     benes = benes.filter(b=>b.crop===filterCrop);
+  if (searchQ)        benes = benes.filter(b=>(b.name+b.rsbsa+b.municipality).toLowerCase().includes(searchQ.toLowerCase()));
+
+  const provinces = [...new Set(DB.get(DB.KEYS.BENEFICIARIES).map(b=>b.province))];
+  const crops     = [...new Set(DB.get(DB.KEYS.BENEFICIARIES).map(b=>b.crop))];
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Total Beneficiaries</div><div class="kpi-value">${total}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Women Farmers</div><div class="kpi-value">${women}</div><div class="kpi-sub">${total>0?Math.round(women/total*100):0}% — GEDSI</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Smallholders ≤0.5 ha</div><div class="kpi-value">${small}</div><div class="kpi-sub">${total>0?Math.round(small/total*100):0}% targeting compliance</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">Filtered Results</div><div class="kpi-value">${benes.length}</div><div class="kpi-sub">of ${total} records</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Beneficiary Masterlist <small>${benes.length} records shown</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input placeholder="Search name / RSBSA / municipality…" style="width:220px" value="${searchQ}"
+            oninput="searchQ=this.value;render()">
+          <select onchange="filterProvince=this.value;render()">
+            <option value="">All Provinces</option>
+            ${provinces.map(p=>`<option ${filterProvince===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+          <select onchange="filterSex=this.value;render()">
+            <option value="">All Sexes</option>
+            <option ${filterSex==='Female'?'selected':''}>Female</option>
+            <option ${filterSex==='Male'?'selected':''}>Male</option>
+          </select>
+          <select onchange="filterCrop=this.value;render()">
+            <option value="">All Crops</option>
+            ${crops.map(c=>`<option ${filterCrop===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.BENEFICIARIES),'beneficiaries.csv')">${ICONS.download} CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddModal()">${ICONS.plus} Add</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>RSBSA</th><th>GEDSI</th><th>Farm (ha)</th><th>Municipality</th><th>Province</th><th>Crop</th><th>FCA</th><th>Interventions</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${benes.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records match filter</td></tr>':
+              benes.map(b=>`<tr>
+                <td><strong>${b.name}</strong></td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${b.rsbsa||'—'}</td>
+                <td>${fmt.gedsiChips(b)}</td>
+                <td style="font-family:var(--font-mono)">${b.farmSize}</td>
+                <td>${b.municipality}${b.barangay?`<br><span style="font-size:.72rem;color:var(--gray-500)">Brgy. ${b.barangay}</span>`:''}</td>
+                <td>${b.province}</td>
+                <td>${b.crop}</td>
+                <td style="font-size:.76rem">${b.fca||'—'}</td>
+                <td style="font-size:.72rem;max-width:180px">${(b.interventions||[]).join(', ')||'—'}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-secondary btn-sm" onclick="editBeneficiary('${b.id}')" style="margin-right:4px">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteBene('${b.id}')">${ICONS.trash}</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Add Beneficiary';
+  document.getElementById('b-edit-id').value = '';
+  document.getElementById('b-name').value = '';
+  document.getElementById('b-rsbsa').value = '';
+  document.getElementById('b-farmsize').value = '';
+  document.getElementById('b-municipality').value = '';
+  document.getElementById('b-barangay').value = '';
+  document.getElementById('b-fca').value = 'None';
+  document.getElementById('b-ip').checked = false;
+  document.getElementById('b-pwd').checked = false;
+  document.getElementById('b-gida').checked = false;
+  document.querySelectorAll('#intervention-checks input').forEach(c=>c.checked=false);
+  openModal('bene-modal');
+}
+
+function editBeneficiary(id) {
+  const b = DB.get(DB.KEYS.BENEFICIARIES).find(x=>x.id===id);
+  if (!b) return;
+  document.getElementById('modal-title').textContent = 'Edit Beneficiary';
+  document.getElementById('b-edit-id').value = id;
+  document.getElementById('b-name').value = b.name;
+  document.getElementById('b-rsbsa').value = b.rsbsa||'';
+  document.getElementById('b-sex').value = b.sex;
+  document.getElementById('b-age').value = b.ageGroup;
+  document.getElementById('b-farmsize').value = b.farmSize;
+  document.getElementById('b-province').value = b.province;
+  document.getElementById('b-municipality').value = b.municipality;
+  document.getElementById('b-barangay').value = b.barangay||'';
+  document.getElementById('b-crop').value = b.crop;
+  document.getElementById('b-fca').value = b.fca||'None';
+  document.getElementById('b-tenure').value = b.tenure||'Owner';
+  document.getElementById('b-ip').checked = !!b.ip;
+  document.getElementById('b-pwd').checked = !!b.pwd;
+  document.getElementById('b-gida').checked = !!b.gida;
+  document.querySelectorAll('#intervention-checks input').forEach(c=>{
+    c.checked = (b.interventions||[]).includes(c.value);
+  });
+  openModal('bene-modal');
+}
+
+function saveBeneficiary() {
+  const name = document.getElementById('b-name').value.trim();
+  const farmSize = +document.getElementById('b-farmsize').value;
+  if (!name) { toast('Name is required','error'); return; }
+  if (!farmSize) { toast('Farm size is required','error'); return; }
+  if (farmSize > 0.5) {
+    if (!confirm(`Farm size is ${farmSize} ha — exceeds 0.5 ha priority threshold. Include anyway?`)) return;
+  }
+  const interventions = [...document.querySelectorAll('#intervention-checks input:checked')].map(c=>c.value);
+  const rec = {
+    name, rsbsa: document.getElementById('b-rsbsa').value.trim(),
+    sex: document.getElementById('b-sex').value,
+    ageGroup: document.getElementById('b-age').value,
+    farmSize,
+    province: document.getElementById('b-province').value,
+    municipality: document.getElementById('b-municipality').value.trim(),
+    barangay: document.getElementById('b-barangay').value.trim(),
+    crop: document.getElementById('b-crop').value,
+    fca: document.getElementById('b-fca').value.trim()||'None',
+    tenure: document.getElementById('b-tenure').value,
+    ip: document.getElementById('b-ip').checked,
+    pwd: document.getElementById('b-pwd').checked,
+    gida: document.getElementById('b-gida').checked,
+    interventions,
+  };
+  const editId = document.getElementById('b-edit-id').value;
+  if (editId) { DB.update(DB.KEYS.BENEFICIARIES, editId, rec); toast('Beneficiary updated'); }
+  else        { DB.add(DB.KEYS.BENEFICIARIES, rec); toast('Beneficiary added'); }
+  closeModal('bene-modal');
+  render();
+}
+
+function deleteBene(id) {
+  if (!confirm('Remove this beneficiary?')) return;
+  DB.remove(DB.KEYS.BENEFICIARIES, id);
+  toast('Removed');
+  render();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SO3 – Biofert, BCAs & Pests — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Specific Objective 3</span>
+      <span class="topbar-subtitle">— Biofertilizers, Complementary Fertilizers, BCAs &amp; Pest Surveillance</span>
+      <span class="topbar-badge">SO3 Monitor</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<!-- Biofert modal -->
+<div class="modal-overlay hidden" id="biofert-modal">
+  <div class="modal-box">
+    <div class="modal-header">Add Biofertilizer / BCA Distribution Record <button class="modal-close" onclick="closeModal('biofert-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Product Type<span class="req">*</span></label>
+          <select id="bf-type"><option>Biofertilizer</option><option>Complementary Inorganic Fertilizer</option><option>BCA</option></select></div>
+        <div class="form-group"><label class="form-label">Product Name<span class="req">*</span></label>
+          <input id="bf-product" placeholder="e.g. Trichoderma, BFAR Biofertilizer"></div>
+        <div class="form-group"><label class="form-label">Beneficiary Name<span class="req">*</span></label><input id="bf-bene"></div>
+        <div class="form-group"><label class="form-label">RSBSA</label><input id="bf-rsbsa"></div>
+        <div class="form-group"><label class="form-label">Province</label>
+          <select id="bf-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality</label><input id="bf-municipality"></div>
+        <div class="form-group"><label class="form-label">Quantity</label><input id="bf-qty" type="number" value="1"></div>
+        <div class="form-group"><label class="form-label">Unit</label>
+          <select id="bf-unit"><option>kg</option><option>L</option><option>sachet</option><option>bag</option><option>bottle</option></select></div>
+        <div class="form-group"><label class="form-label">Distribution Date</label><input id="bf-distdate" type="date"></div>
+        <div class="form-group"><label class="form-label">Applied?</label>
+          <select id="bf-applied"><option value="false">Not yet</option><option value="true">Yes</option></select></div>
+        <div class="form-group"><label class="form-label">Date Applied (if applicable)</label><input id="bf-applydate" type="date"></div>
+        <div class="form-group"><label class="form-label">Area Applied (ha)</label><input id="bf-area" type="number" step="0.01" value="0"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Crop Response Observed</label>
+        <textarea id="bf-response" placeholder="Notes on crop response after application"></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Pest/Disease Status at Application</label>
+        <input id="bf-pest" placeholder="e.g. None, Mild aphid, Armyworm detected"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('biofert-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBiofert()">Save Record</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('objective3.html');
+  render();
+});
+
+function render() {
+  const bioferts = DB.get(DB.KEYS.BIOFERT);
+  const pests    = DB.get(DB.KEYS.PEST);
+
+  const bioList  = bioferts.filter(b=>b.type==='Biofertilizer');
+  const bcaList  = bioferts.filter(b=>b.type==='BCA');
+  const fertList = bioferts.filter(b=>b.type==='Complementary Inorganic Fertilizer');
+
+  const bioApplied = bioList.filter(b=>b.applied).length;
+  const bcaApplied = bcaList.filter(b=>b.applied).length;
+  const bioRate    = bioList.length>0 ? Math.round(bioApplied/bioList.length*100) : 0;
+  const bcaRate    = bcaList.length>0 ? Math.round(bcaApplied/bcaList.length*100) : 0;
+
+  const totalAreaBio = bioferts.filter(b=>b.applied).reduce((s,b)=>s+(b.areaApplied||0),0);
+
+  const highPest = pests.filter(p=>p.severity==='High'||p.severity==='Severe');
+  const pestMunis= [...new Set(pests.map(p=>p.municipality))];
+  const pestCropTypes = [...new Set(pests.map(p=>p.crop))];
+
+  // Pest by severity
+  const severities = ['None','Low','Moderate','High','Severe'];
+  const sevColors  = {'None':'var(--green-500)','Low':'var(--green-400)','Moderate':'var(--gold-400)','High':'var(--orange-500)','Severe':'var(--red-500)'};
+  const sevCounts  = severities.map(s=>pests.filter(p=>p.severity===s).length);
+
+  document.getElementById('page-body').innerHTML = `
+    ${highPest.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT — ${highPest.length} High/Severe Report(s):</strong> ${highPest.map(p=>`${p.municipality} (${p.pestObserved})`).join(', ')}. BCA deployment review required immediately. <a href="pest.html" style="color:inherit;font-weight:700">Open Pest Page →</a></div></div>`:''}
+
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Biofertilizers Distributed</div><div class="kpi-value">${bioList.length}</div><div class="kpi-sub">${fertList.length} inorganic complement</div></div>
+      <div class="kpi-tile ${rateColor(bioRate)}"><div class="kpi-label">Biofertilizer Adoption</div><div class="kpi-value">${bioRate}%</div>
+        <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(bioRate)}" style="width:${bioRate}%"></div></div></div></div>
+      <div class="kpi-tile ${rateColor(bcaRate)}"><div class="kpi-label">BCA Adoption</div><div class="kpi-value">${bcaRate}%</div>
+        <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(bcaRate)}" style="width:${bcaRate}%"></div></div></div></div>
+      <div class="kpi-tile"><div class="kpi-label">Area Applied</div><div class="kpi-value">${totalAreaBio.toFixed(2)}</div><div class="kpi-sub">hectares with biofert/BCA</div></div>
+    </div>
+
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile blue"><div class="kpi-label">Pest Reports Submitted</div><div class="kpi-value">${pests.length}</div><div class="kpi-sub">KoboToolbox submissions</div></div>
+      <div class="kpi-tile ${highPest.length>0?'red':''}"><div class="kpi-label">High/Severe Alerts</div><div class="kpi-value" style="${highPest.length>0?'color:var(--red-500)':''}">${highPest.length}</div><div class="kpi-sub">Require immediate action</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Municipalities Surveyed</div><div class="kpi-value">${pestMunis.length}</div><div class="kpi-sub">${pestCropTypes.length} crop types</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">BCAs Distributed</div><div class="kpi-value">${bcaList.length}</div><div class="kpi-sub">${bcaApplied} applied in field</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Pest Reports by Severity Level</div>
+        <div style="display:flex;align-items:flex-end;gap:12px;height:120px;padding:8px 4px 0">
+          ${severities.map((sev,i)=>sevCounts[i]>0?`
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:.7rem;color:var(--gray-500);font-family:var(--font-mono)">${sevCounts[i]}</div>
+              <div style="width:100%;height:${Math.max(8,sevCounts[i]/Math.max(...sevCounts)*90)}px;background:${sevColors[sev]};border-radius:3px 3px 0 0"></div>
+              <div style="font-size:.66rem;color:var(--gray-600)">${sev}</div>
+            </div>`:''
+          ).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Biofertilizer vs BCA Adoption</div>
+        <div style="display:flex;gap:20px;align-items:center;padding:10px 0">
+          <div style="flex:1;text-align:center">
+            <div id="donut-bio"></div>
+            <div style="font-size:.76rem;color:var(--gray-600);margin-top:4px">Biofertilizer</div>
+            <div style="font-size:.72rem;color:var(--gray-500)">${bioApplied}/${bioList.length} applied</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div id="donut-bca"></div>
+            <div style="font-size:.76rem;color:var(--gray-600);margin-top:4px">BCA</div>
+            <div style="font-size:.72rem;color:var(--gray-500)">${bcaApplied}/${bcaList.length} applied</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Biofert/BCA table -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-header">
+        <div class="section-title">Biofertilizer, Inorganic &amp; BCA Records <small>${bioferts.length} records</small></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.BIOFERT),'so3_biofert_bca.csv')">${ICONS.download} Export</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('biofert-modal')">${ICONS.plus} Add Record</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Qty</th><th>Dist. Date</th><th>Applied?</th><th>Area Applied</th><th>Crop Response</th><th>Pest Status</th></tr></thead>
+          <tbody>
+            ${bioferts.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records yet</td></tr>':
+              bioferts.map(b=>`<tr>
+                <td><span class="badge ${b.type==='BCA'?'blue':b.type==='Biofertilizer'?'green':'amber'}">${b.type==='Complementary Inorganic Fertilizer'?'Inorg. Fert.':b.type}</span></td>
+                <td>${b.product}</td>
+                <td>${b.beneficiaryName}</td>
+                <td>${b.municipality}</td>
+                <td>${b.qty} ${b.unit}</td>
+                <td>${fmt.date(b.distDate)}</td>
+                <td>${b.applied?`<span class="badge green">Applied ${fmt.date(b.applyDate)}</span>`:'<span class="badge amber">Not yet</span>'}</td>
+                <td>${b.areaApplied?b.areaApplied+' ha':'—'}</td>
+                <td style="font-size:.76rem;max-width:180px">${b.cropResponse||'—'}</td>
+                <td style="font-size:.76rem">${b.pestStatus||'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pest reports summary -->
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Pest Surveillance Summary <small>Latest ${pests.length} Reports</small></div>
+        <a href="pest.html" class="btn btn-primary btn-sm">${ICONS.bug} Open Pest Module</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>AEW</th><th>Municipality</th><th>Crop</th><th>Pest/Disease</th><th>Severity</th><th>% Affected</th><th>Crop Condition</th><th>Intervention?</th></tr></thead>
+          <tbody>
+            ${pests.length===0?'<tr><td colspan="9" style="text-align:center;color:var(--gray-400)">No pest reports yet</td></tr>':
+              pests.map(p=>`<tr>
+                <td>${fmt.date(p.date)}</td>
+                <td style="font-size:.76rem">${p.aew}</td>
+                <td>${p.municipality}</td>
+                <td>${p.crop}</td>
+                <td>${p.pestObserved||'None'}</td>
+                <td>${fmt.statusBadge(p.severity||'None')}</td>
+                <td style="font-family:var(--font-mono)">${p.pctAffected}%</td>
+                <td>${fmt.statusBadge(p.cropCondition)}</td>
+                <td>${p.interventionReceived?'<span class="badge green">Yes</span>':'<span class="badge red">No</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  renderDonut('donut-bio', bioApplied, bioList.length||1);
+  renderDonut('donut-bca', bcaApplied, bcaList.length||1, 'var(--blue-500)');
+}
+
+function saveBiofert() {
+  const r = {
+    type: document.getElementById('bf-type').value,
+    product: document.getElementById('bf-product').value.trim(),
+    beneficiaryName: document.getElementById('bf-bene').value.trim(),
+    beneficiaryId: '',
+    rsbsa: document.getElementById('bf-rsbsa').value.trim(),
+    province: document.getElementById('bf-province').value,
+    municipality: document.getElementById('bf-municipality').value.trim(),
+    qty: +document.getElementById('bf-qty').value,
+    unit: document.getElementById('bf-unit').value,
+    distDate: document.getElementById('bf-distdate').value,
+    applied: document.getElementById('bf-applied').value === 'true',
+    applyDate: document.getElementById('bf-applydate').value,
+    areaApplied: +document.getElementById('bf-area').value,
+    cropResponse: document.getElementById('bf-response').value.trim(),
+    pestStatus: document.getElementById('bf-pest').value.trim(),
+  };
+  if (!r.product || !r.beneficiaryName) { toast('Product name and beneficiary are required','error'); return; }
+  DB.add(DB.KEYS.BIOFERT, r);
+  closeModal('biofert-modal');
+  toast('Record saved');
+  render();
+}
+</script>
+</body>
+</html>

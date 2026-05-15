@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Map View — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  #map { height: 560px; width: 100%; border-radius: 6px; z-index: 1; }
+  .leaflet-popup-content { font-family: 'IBM Plex Sans', sans-serif; font-size: .82rem; min-width: 200px; }
+  .popup-title { font-weight: 700; font-size: .88rem; margin-bottom: 4px; }
+  .popup-row   { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; color: #374151; }
+  .popup-row strong { color: #111827; }
+  .legend { background: white; padding: 10px 14px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.15); line-height: 1.6; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: .78rem; }
+  .legend-dot  { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .map-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .layer-btn { padding: 5px 12px; border-radius: 20px; border: 2px solid transparent; font-size: .78rem; font-weight: 600; cursor: pointer; font-family: inherit; background: var(--gray-200); color: var(--gray-700); transition: all .15s; }
+  .layer-btn.active { border-color: var(--green-600); background: var(--green-50); color: var(--green-800); }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Map View</span>
+      <span class="topbar-subtitle">— Geographic Coverage &amp; Field Data</span>
+      <span class="topbar-badge">Leaflet / OSM</span>
+    </div>
+    <div class="page-body">
+
+      <!-- Layer controls -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-weight:700;font-size:.88rem;color:var(--gray-800);margin-bottom:4px">Map Layers</div>
+            <div class="map-controls">
+              <button class="layer-btn active" id="btn-munis"    onclick="toggleLayer('munis')">📍 Municipalities</button>
+              <button class="layer-btn active" id="btn-benes"    onclick="toggleLayer('benes')">👥 Beneficiaries</button>
+              <button class="layer-btn active" id="btn-tech"     onclick="toggleLayer('tech')">⚙️ Technology Sites</button>
+              <button class="layer-btn active" id="btn-pest"     onclick="toggleLayer('pest')">🐛 Pest Reports</button>
+            </div>
+          </div>
+          <div id="map-summary" style="font-size:.8rem;color:var(--gray-600);text-align:right"></div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+        <div id="map"></div>
+      </div>
+
+      <!-- Summary table -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Municipality Coverage</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Municipality</th><th>Province</th><th>CRVA Risk</th><th>Beneficiaries</th></tr></thead>
+              <tbody id="muni-table"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pest Hotspots</div>
+          <div class="table-wrap" id="pest-table-wrap">
+            <table>
+              <thead><tr><th>Municipality</th><th>Crop</th><th>Pest</th><th>Severity</th></tr></thead>
+              <tbody id="pest-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+// Municipality centroids (Region 2 Philippines — approximate)
+const MUNI_COORDS = {
+  'Cauayan City':    [16.9282, 121.7751],
+  'Ilagan City':     [17.1470, 121.8889],
+  'Santiago City':   [16.6874, 121.5497],
+  'Tumauini':        [17.2694, 121.8011],
+  'Cabagan':         [17.4344, 121.8555],
+  'Tuguegarao City': [17.6132, 121.7270],
+  'Aparri':          [18.3548, 121.6388],
+  'Lallo':           [18.1943, 121.6528],
+  'Bayombong':       [16.4830, 121.1543],
+  'Cabarroguis':     [16.5083, 121.5102],
+};
+
+const CRVA_COLOR = { 'Very High':'#c0392b', 'High':'#e06c1a', 'Moderate':'#c9912b', 'Low':'#27944f' };
+const SEV_COLOR  = { 'None':'#27944f','Low':'#52c274','Moderate':'#c9912b','High':'#e06c1a','Severe':'#c0392b' };
+
+let map, layers = { munis: null, benes: null, tech: null, pest: null };
+let visible = { munis: true, benes: true, tech: true, pest: true };
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('map.html');
+  initMap();
+  renderTables();
+});
+
+function initMap() {
+  map = L.map('map', { center: [17.2, 121.7], zoom: 8 });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  addLegend();
+  buildLayers();
+  updateSummary();
+}
+
+function buildLayers() {
+  const munis  = DB.get(DB.KEYS.MUNICIPALITIES);
+  const benes  = DB.get(DB.KEYS.BENEFICIARIES);
+  const techs  = DB.get(DB.KEYS.TECH);
+  const pests  = DB.get(DB.KEYS.PEST);
+
+  // ── Municipalities layer
+  const muniGroup = L.layerGroup();
+  munis.filter(m => m.confirmed).forEach(m => {
+    const coords = MUNI_COORDS[m.municipality];
+    if (!coords) return;
+    const color = CRVA_COLOR[m.crvaRisk] || '#4b5563';
+    const marker = L.circleMarker(coords, {
+      radius: 14, fillColor: color, color: '#fff',
+      weight: 2, opacity: 1, fillOpacity: 0.8
+    });
+    const benCount = benes.filter(b => b.municipality === m.municipality).length;
+    marker.bindPopup(`
+      <div class="popup-title">📍 ${m.municipality}</div>
+      <div class="popup-row"><span>Province</span><strong>${m.province}</strong></div>
+      <div class="popup-row"><span>CRVA Risk</span><strong style="color:${color}">${m.crvaRisk}</strong></div>
+      <div class="popup-row"><span>Beneficiaries</span><strong>${benCount}</strong></div>
+      <div class="popup-row"><span>Crops</span><strong>${(m.crops||[]).join(', ')}</strong></div>
+      <div class="popup-row"><span>Technology</span><strong>${(m.tech||[]).join(', ')||'—'}</strong></div>
+    `);
+    marker.addTo(muniGroup);
+    L.tooltip({ permanent: true, direction: 'top', offset: [0,-12], className: 'leaflet-tooltip' })
+      .setContent(`<span style="font-size:10px;font-weight:700">${m.municipality.split(' ')[0]}</span>`)
+      .addTo(marker._map || map);
+    marker.bindTooltip(`<span style="font-size:10px;font-weight:700;font-family:sans-serif">${m.municipality}</span>`,
+      { permanent: true, direction: 'top', offset: [0, -14] });
+    muniGroup.addLayer(marker);
+  });
+  layers.munis = muniGroup;
+  if (visible.munis) muniGroup.addTo(map);
+
+  // ── Beneficiary clusters (by municipality)
+  const beneGroup = L.layerGroup();
+  const byMuni = {};
+  benes.forEach(b => {
+    byMuni[b.municipality] = byMuni[b.municipality] || [];
+    byMuni[b.municipality].push(b);
+  });
+  Object.entries(byMuni).forEach(([muni, list]) => {
+    const coords = MUNI_COORDS[muni];
+    if (!coords) return;
+    const offset = [coords[0] + 0.03, coords[1] + 0.05];
+    const women = list.filter(b=>b.sex==='Female').length;
+    const marker = L.circleMarker(offset, {
+      radius: 8 + Math.min(list.length, 8),
+      fillColor: '#2563eb', color: '#fff',
+      weight: 2, opacity: 1, fillOpacity: 0.7
+    });
+    marker.bindPopup(`
+      <div class="popup-title">👥 ${muni} — ${list.length} Beneficiaries</div>
+      <div class="popup-row"><span>Women</span><strong>${women} (${Math.round(women/list.length*100)}%)</strong></div>
+      <div class="popup-row"><span>Smallholders ≤0.5ha</span><strong>${list.filter(b=>b.farmSize<=0.5).length}</strong></div>
+      <div class="popup-row"><span>Crops</span><strong>${[...new Set(list.map(b=>b.crop))].join(', ')}</strong></div>
+    `);
+    beneGroup.addLayer(marker);
+  });
+  layers.benes = beneGroup;
+  if (visible.benes) beneGroup.addTo(map);
+
+  // ── Technology sites
+  const techGroup = L.layerGroup();
+  techs.forEach(t => {
+    const coords = MUNI_COORDS[t.municipality];
+    if (!coords) return;
+    const offset = [coords[0] - 0.03, coords[1] - 0.04];
+    const color  = t.functional ? '#27944f' : '#c0392b';
+    const icon   = L.divIcon({
+      html: `<div style="background:${color};color:white;border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;white-space:nowrap;border:1px solid rgba(255,255,255,.5)">${t.type}</div>`,
+      className: '', iconAnchor: [20, 10]
+    });
+    const marker = L.marker(offset, { icon });
+    marker.bindPopup(`
+      <div class="popup-title">⚙️ ${t.type} — ${t.municipality}</div>
+      <div class="popup-row"><span>Beneficiary</span><strong>${t.beneficiary}</strong></div>
+      <div class="popup-row"><span>Status</span><strong style="color:${color}">${t.functional?'Functional':'Non-functional'}</strong></div>
+      <div class="popup-row"><span>Area Served</span><strong>${t.functional?(t.areaServed||0)+' ha':'—'}</strong></div>
+      ${t.issue?`<div style="margin-top:4px;font-size:.76rem;color:#c0392b">⚠ ${t.issue}</div>`:''}
+    `);
+    techGroup.addLayer(marker);
+  });
+  layers.tech = techGroup;
+  if (visible.tech) techGroup.addTo(map);
+
+  // ── Pest reports
+  const pestGroup = L.layerGroup();
+  pests.forEach(p => {
+    const coords = p.lat && p.lng ? [p.lat, p.lng] : (MUNI_COORDS[p.municipality] ? [MUNI_COORDS[p.municipality][0]+0.01, MUNI_COORDS[p.municipality][1]-0.02] : null);
+    if (!coords) return;
+    const sColor = SEV_COLOR[p.severity] || '#6b7280';
+    const r = p.severity==='High'||p.severity==='Severe' ? 10 : p.severity==='Moderate' ? 7 : 5;
+    const marker = L.circleMarker(coords, {
+      radius: r, fillColor: sColor, color: '#fff',
+      weight: 1.5, opacity: 1, fillOpacity: 0.85
+    });
+    marker.bindPopup(`
+      <div class="popup-title">🐛 Pest Report — ${p.municipality}</div>
+      <div class="popup-row"><span>Date</span><strong>${fmt.date(p.date)}</strong></div>
+      <div class="popup-row"><span>Crop</span><strong>${p.crop} (${p.growthStage})</strong></div>
+      <div class="popup-row"><span>Pest</span><strong>${p.pestObserved||'None'}</strong></div>
+      <div class="popup-row"><span>Severity</span><strong style="color:${sColor}">${p.severity}</strong></div>
+      <div class="popup-row"><span>% Affected</span><strong>${p.pctAffected}%</strong></div>
+      <div class="popup-row"><span>Intervention</span><strong>${p.interventionReceived?'Yes':'No — NEEDED'}</strong></div>
+      <div style="font-size:.72rem;color:#6b7280;margin-top:4px">AEW: ${p.aew}</div>
+    `);
+    if (p.severity==='High'||p.severity==='Severe') {
+      marker.setStyle({ weight: 3, color: '#c0392b' });
+    }
+    pestGroup.addLayer(marker);
+  });
+  layers.pest = pestGroup;
+  if (visible.pest) pestGroup.addTo(map);
+}
+
+function toggleLayer(name) {
+  visible[name] = !visible[name];
+  const btn = document.getElementById(`btn-${name}`);
+  btn.classList.toggle('active', visible[name]);
+  if (!layers[name]) return;
+  if (visible[name]) layers[name].addTo(map);
+  else map.removeLayer(layers[name]);
+}
+
+function addLegend() {
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div', 'legend');
+    div.innerHTML = `
+      <div style="font-weight:700;font-size:.78rem;margin-bottom:6px;color:#374151">Legend</div>
+      <div style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:3px">CRVA Risk (Municipalities)</div>
+      ${Object.entries(CRVA_COLOR).map(([k,c])=>`<div class="legend-item"><div class="legend-dot" style="background:${c}"></div> ${k}</div>`).join('')}
+      <div style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;margin:6px 0 3px">Pest Severity</div>
+      ${['High/Severe','Moderate','Low/None'].map((k,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${['#c0392b','#c9912b','#27944f'][i]}"></div> ${k}</div>`).join('')}
+      <div style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;margin:6px 0 3px">Technology</div>
+      <div class="legend-item"><div style="width:12px;height:8px;background:#27944f;border-radius:2px;flex-shrink:0"></div> Functional</div>
+      <div class="legend-item"><div style="width:12px;height:8px;background:#c0392b;border-radius:2px;flex-shrink:0"></div> Non-functional</div>
+    `;
+    return div;
+  };
+  legend.addTo(map);
+}
+
+function updateSummary() {
+  const munis = DB.get(DB.KEYS.MUNICIPALITIES).filter(m=>m.confirmed).length;
+  const benes = DB.get(DB.KEYS.BENEFICIARIES).length;
+  const tech  = DB.get(DB.KEYS.TECH).length;
+  const pests = DB.get(DB.KEYS.PEST).length;
+  document.getElementById('map-summary').innerHTML =
+    `<strong>${munis}</strong> municipalities &nbsp;·&nbsp; <strong>${benes}</strong> beneficiaries &nbsp;·&nbsp; <strong>${tech}</strong> tech sites &nbsp;·&nbsp; <strong>${pests}</strong> pest reports`;
+}
+
+function renderTables() {
+  const munis = DB.get(DB.KEYS.MUNICIPALITIES);
+  const benes = DB.get(DB.KEYS.BENEFICIARIES);
+  const pests = DB.get(DB.KEYS.PEST);
+
+  document.getElementById('muni-table').innerHTML = munis.map(m => `
+    <tr>
+      <td><strong>${m.municipality}</strong></td>
+      <td>${m.province}</td>
+      <td><span class="badge ${m.crvaRisk==='Very High'?'red':m.crvaRisk==='High'?'amber':'gray'}">${m.crvaRisk}</span></td>
+      <td>${benes.filter(b=>b.municipality===m.municipality).length}</td>
+    </tr>`).join('');
+
+  const highPest = pests.filter(p=>p.severity==='High'||p.severity==='Severe'||p.severity==='Moderate');
+  document.getElementById('pest-table').innerHTML = (highPest.length > 0 ? highPest : pests).map(p => `
+    <tr ${p.severity==='High'||p.severity==='Severe'?'style="background:var(--red-100)"':''}>
+      <td>${p.municipality}</td>
+      <td>${p.crop}</td>
+      <td>${p.pestObserved||'None'}</td>
+      <td>${fmt.statusBadge(p.severity||'None')}</td>
+    </tr>`).join('');
+}
+</script>
+</body>
+</html>

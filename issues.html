@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Issue Tracker — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Issue Tracker</span>
+      <span class="topbar-subtitle">— Implementation Problems, Risks &amp; Corrective Actions</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<!-- Add/Edit modal -->
+<div class="modal-overlay hidden" id="issue-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="modal-title">Log New Issue</span>
+      <button class="modal-close" onclick="closeModal('issue-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group">
+          <label class="form-label">Date Detected<span class="req">*</span></label>
+          <input id="is-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status<span class="req">*</span></label>
+          <select id="is-status">
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+          </select>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Issue Description<span class="req">*</span></label>
+          <textarea id="is-desc" placeholder="Describe the issue clearly — what, where, who is affected…" style="min-height:80px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Person/Unit Responsible</label>
+          <input id="is-resp" placeholder="e.g. RAED / PAO-Isabela / AEW">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="is-cat">
+            <option>Technology / Equipment</option>
+            <option>Input Distribution</option>
+            <option>Pest / Crop</option>
+            <option>Beneficiary Compliance</option>
+            <option>Access / Logistics</option>
+            <option>Data / Reporting</option>
+            <option>Budget / Procurement</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Action Taken / Recommendation</label>
+          <textarea id="is-action" placeholder="Steps already taken or recommended corrective actions…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Resolved (if applicable)</label>
+          <input id="is-resolved" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Resolution Notes</label>
+          <input id="is-resnotes" placeholder="How was it resolved?">
+        </div>
+      </div>
+      <input type="hidden" id="is-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('issue-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIssue()">Save Issue</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+let filterStatus = '', filterCat = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('issues.html');
+  document.getElementById('is-date').value = new Date().toISOString().split('T')[0];
+  render();
+});
+
+function render() {
+  let issues = DB.get(DB.KEYS.ISSUES);
+  const all = issues;
+
+  const open       = all.filter(i => i.status === 'Open').length;
+  const inProgress = all.filter(i => i.status === 'In Progress').length;
+  const resolved   = all.filter(i => i.status === 'Resolved').length;
+
+  if (filterStatus) issues = issues.filter(i => i.status === filterStatus);
+  if (filterCat)    issues = issues.filter(i => i.category === filterCat);
+
+  const cats = [...new Set(all.map(i => i.category).filter(Boolean))];
+
+  // Risk log — static reference
+  const risks = [
+    { id:'R01', risk:'Low rainfall during growing season',        likelihood:'High',   impact:'High',   rating:'Critical', mitigation:'Drought-tolerant varieties; INS/SPIS deployment; dry season planting schedule' },
+    { id:'R02', risk:'Technology unit malfunction / non-delivery', likelihood:'Medium', impact:'High',   rating:'High',     mitigation:'Functionality monitoring; PAO coordination; spare parts procurement plan' },
+    { id:'R03', risk:'Low beneficiary adoption of biofertilizer',  likelihood:'Medium', impact:'Medium', rating:'Moderate', mitigation:'AEW follow-up; demo plots; technical advisory visits' },
+    { id:'R04', risk:'Pest/disease outbreak without BCA stocks',   likelihood:'Medium', impact:'High',   rating:'High',     mitigation:'KoboToolbox early warning; Regulatory BCA deployment protocol; stockpiling' },
+    { id:'R05', risk:'Beneficiary targeting exclusion error',       likelihood:'Low',    impact:'High',   rating:'High',     mitigation:'CRVA-validated list; RSBSA cross-check; GEDSI review' },
+    { id:'R06', risk:'AEW not submitting weekly reports',           likelihood:'Medium', impact:'Medium', rating:'Moderate', mitigation:'Supervisor review; GRS integration; management escalation after 2 missed weeks' },
+    { id:'R07', risk:'Budget release delay for planting materials', likelihood:'Low',    impact:'High',   rating:'Moderate', mitigation:'Procurement planning; coordination with RIAD; contingency input phasing' },
+  ];
+
+  const ratingColor = { Critical:'red', High:'amber', Moderate:'blue', Low:'gray' };
+
+  document.getElementById('page-body').innerHTML = `
+    <!-- KPIs -->
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile ${open > 2 ? 'red' : open > 0 ? 'amber' : ''}">
+        <div class="kpi-label">Open Issues</div>
+        <div class="kpi-value">${open}</div>
+        <div class="kpi-sub">Require immediate action</div>
+      </div>
+      <div class="kpi-tile amber">
+        <div class="kpi-label">In Progress</div>
+        <div class="kpi-value">${inProgress}</div>
+        <div class="kpi-sub">Action underway</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Resolved</div>
+        <div class="kpi-value">${resolved}</div>
+        <div class="kpi-sub">Closed issues</div>
+      </div>
+      <div class="kpi-tile blue">
+        <div class="kpi-label">Total Logged</div>
+        <div class="kpi-value">${all.length}</div>
+      </div>
+    </div>
+
+    <!-- Open issues callout -->
+    ${open > 0 ? `
+    <div class="alert-banner amber" style="margin-bottom:16px">
+      ${ICONS.alert}
+      <div>
+        <strong>${open} open issue(s) require management decision.</strong>
+        Review and assign responsible units immediately.
+        Issues unresolved for more than 7 days should be escalated to the RFO Director.
+      </div>
+    </div>` : `
+    <div class="alert-banner green" style="margin-bottom:16px">
+      ${ICONS.check}
+      <div><strong>No open issues.</strong> All active issues are either in progress or resolved.</div>
+    </div>`}
+
+    <!-- Issue log -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-header">
+        <div class="section-title">Issue Log <small>${issues.length} shown of ${all.length}</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select onchange="filterStatus=this.value;render()" style="width:140px">
+            <option value="">All Statuses</option>
+            <option ${filterStatus==='Open'?'selected':''}>Open</option>
+            <option ${filterStatus==='In Progress'?'selected':''}>In Progress</option>
+            <option ${filterStatus==='Resolved'?'selected':''}>Resolved</option>
+          </select>
+          <select onchange="filterCat=this.value;render()" style="width:180px">
+            <option value="">All Categories</option>
+            ${cats.map(c=>`<option ${filterCat===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.ISSUES),'issues.csv')">${ICONS.download} Export</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddIssue()">${ICONS.plus} Log Issue</button>
+        </div>
+      </div>
+
+      ${issues.length === 0
+        ? '<div class="empty-state"><p>No issues match the current filter.</p></div>'
+        : issues.map(iss => `
+        <div style="
+          border-left: 4px solid ${iss.status==='Open'?'var(--red-500)':iss.status==='In Progress'?'var(--gold-500)':'var(--green-500)'};
+          background: ${iss.status==='Open'?'var(--red-100)':iss.status==='In Progress'?'var(--gold-100)':'var(--gray-50)'};
+          border-radius: 0 6px 6px 0;
+          padding: 12px 14px;
+          margin-bottom: 8px;
+        ">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:.88rem;color:var(--gray-900);line-height:1.3">${iss.description}</div>
+              <div style="font-size:.74rem;color:var(--gray-500);margin-top:4px">
+                Detected: ${fmt.date(iss.dateDetected)}
+                ${iss.category ? `&nbsp;·&nbsp;<span class="badge gray">${iss.category}</span>` : ''}
+                ${iss.responsible ? `&nbsp;·&nbsp;Responsible: <strong>${iss.responsible}</strong>` : ''}
+                ${iss.dateResolved ? `&nbsp;·&nbsp;Resolved: ${fmt.date(iss.dateResolved)}` : ''}
+              </div>
+              ${iss.action ? `<div style="margin-top:6px;font-size:.8rem;color:var(--gray-700)"><strong>Action:</strong> ${iss.action}</div>` : ''}
+              ${iss.resolutionNotes ? `<div style="margin-top:4px;font-size:.78rem;color:var(--green-800)"><strong>Resolution:</strong> ${iss.resolutionNotes}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              ${fmt.statusBadge(iss.status)}
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-secondary btn-sm" onclick="editIssue('${iss.id}')">${ICONS.edit}</button>
+                <button class="btn btn-danger btn-sm" onclick="delIssue('${iss.id}')">${ICONS.trash}</button>
+              </div>
+            </div>
+          </div>
+        </div>`).join('')
+      }
+    </div>
+
+    <!-- Risk Register -->
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Risk Register <small>Pre-identified project risks</small></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Risk ID</th>
+              <th>Risk Description</th>
+              <th>Likelihood</th>
+              <th>Impact</th>
+              <th>Rating</th>
+              <th>Mitigation Measure</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${risks.map(r => `
+            <tr>
+              <td style="font-family:var(--font-mono);font-weight:700">${r.id}</td>
+              <td>${r.risk}</td>
+              <td>${fmt.statusBadge(r.likelihood)}</td>
+              <td>${fmt.statusBadge(r.impact)}</td>
+              <td><span class="badge ${ratingColor[r.rating]}">${r.rating}</span></td>
+              <td style="font-size:.78rem">${r.mitigation}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:.74rem;color:var(--gray-500)">
+        Risk register is static and reflects pre-identified risks from the project design. Update issues above to track actual occurrences.
+      </div>
+    </div>
+  `;
+}
+
+function openAddIssue() {
+  document.getElementById('modal-title').textContent = 'Log New Issue';
+  document.getElementById('is-edit-id').value = '';
+  document.getElementById('is-date').value = new Date().toISOString().split('T')[0];
+  ['is-desc','is-resp','is-action','is-resolved','is-resnotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('is-status').value = 'Open';
+  openModal('issue-modal');
+}
+
+function editIssue(id) {
+  const iss = DB.get(DB.KEYS.ISSUES).find(x => x.id === id);
+  if (!iss) return;
+  document.getElementById('modal-title').textContent = 'Edit Issue';
+  document.getElementById('is-edit-id').value = id;
+  document.getElementById('is-date').value    = iss.dateDetected || '';
+  document.getElementById('is-status').value  = iss.status;
+  document.getElementById('is-desc').value    = iss.description;
+  document.getElementById('is-resp').value    = iss.responsible || '';
+  document.getElementById('is-cat').value     = iss.category || 'Other';
+  document.getElementById('is-action').value  = iss.action || '';
+  document.getElementById('is-resolved').value    = iss.dateResolved || '';
+  document.getElementById('is-resnotes').value    = iss.resolutionNotes || '';
+  openModal('issue-modal');
+}
+
+function saveIssue() {
+  const desc = document.getElementById('is-desc').value.trim();
+  if (!desc) { toast('Issue description is required', 'error'); return; }
+  const rec = {
+    dateDetected:    document.getElementById('is-date').value,
+    status:          document.getElementById('is-status').value,
+    description:     desc,
+    responsible:     document.getElementById('is-resp').value.trim(),
+    category:        document.getElementById('is-cat').value,
+    action:          document.getElementById('is-action').value.trim(),
+    dateResolved:    document.getElementById('is-resolved').value,
+    resolutionNotes: document.getElementById('is-resnotes').value.trim(),
+  };
+  const eid = document.getElementById('is-edit-id').value;
+  if (eid) { DB.update(DB.KEYS.ISSUES, eid, rec); toast('Issue updated'); }
+  else     { DB.add(DB.KEYS.ISSUES, rec); toast('Issue logged'); }
+  closeModal('issue-modal');
+  render();
+}
+
+function delIssue(id) {
+  if (!confirm('Delete this issue record?')) return;
+  DB.remove(DB.KEYS.ISSUES, id);
+  toast('Deleted');
+  render();
+}
+</script>
+</body>
+</html>

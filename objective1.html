@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SO1 – Planting Materials & Mango — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <span class="topbar-title">Specific Objective 1</span>
+        <span class="topbar-subtitle">— Planting Materials &amp; Mango Flowering Induction</span>
+      </div>
+      <span class="topbar-badge">SO1 Monitor</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<!-- Mango modal -->
+<div class="modal-overlay hidden" id="mango-modal">
+  <div class="modal-box">
+    <div class="modal-header">Add Mango Induction Record <button class="modal-close" onclick="closeModal('mango-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Province<span class="req">*</span></label>
+          <select id="mg-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="mg-municipality" placeholder="Municipality name"></div>
+        <div class="form-group"><label class="form-label">Farmer / FCA Name<span class="req">*</span></label><input id="mg-farmer" placeholder="Name"></div>
+        <div class="form-group"><label class="form-label">RSBSA Number</label><input id="mg-rsbsa" placeholder="02-000-000"></div>
+        <div class="form-group"><label class="form-label">Trees Assessed</label><input id="mg-assessed" type="number" min="0" value="0"></div>
+        <div class="form-group"><label class="form-label">Trees Ready (Mature leaves)</label><input id="mg-ready" type="number" min="0" value="0"></div>
+        <div class="form-group"><label class="form-label">Trees Treated</label><input id="mg-treated" type="number" min="0" value="0"></div>
+        <div class="form-group"><label class="form-label">Tree Age Class<span class="req">*</span></label>
+          <select id="mg-ageclass"><option>10-15 years</option><option>16-30 years</option><option>Century-old</option></select></div>
+        <div class="form-group"><label class="form-label">Inducer Used<span class="req">*</span></label>
+          <select id="mg-inducer"><option>2kg KNO3+4kg Ca(NO3)2</option><option>6kg CaNO3 (alternative)</option></select></div>
+        <div class="form-group"><label class="form-label">Date of Induction</label><input id="mg-date" type="date"></div>
+        <div class="form-group"><label class="form-label">45-Day Flowering % (fill later)</label><input id="mg-d45" type="number" min="0" max="100" value="0"></div>
+        <div class="form-group"><label class="form-label">90-Day Fruit Set % (fill later)</label><input id="mg-d90" type="number" min="0" max="100" value="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('mango-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMango()">Save Record</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('objective1.html');
+  render();
+});
+
+function render() {
+  const dists = DB.get(DB.KEYS.DISTRIBUTIONS).filter(d => d.inputType==='Seed'||d.inputType==='Planting Mat');
+  const mangos = DB.get(DB.KEYS.MANGO);
+  const benes  = DB.get(DB.KEYS.BENEFICIARIES);
+
+  // KPIs
+  const totalArea = dists.reduce((s,d)=>{
+    const b=benes.find(b=>b.id===d.beneficiaryId); return s+(b?b.farmSize:0);
+  },0);
+  const good = dists.filter(d=>d.establishment==='Good').length;
+  const fair = dists.filter(d=>d.establishment==='Fair').length;
+  const poor = dists.filter(d=>d.establishment==='Poor').length;
+  const estRate = dists.filter(d=>d.establishment).length>0
+    ? Math.round(good/dists.filter(d=>d.establishment).length*100) : 0;
+
+  const mangoCrops = ['Mungbean','Peanut','Watermelon','Onion','Ube'];
+  const cropCounts = mangoCrops.map(c => dists.filter(d=>(d.product||'').toLowerCase().includes(c.toLowerCase())).length);
+
+  // Province distribution
+  const provinces = [...new Set(dists.map(d=>d.province))];
+  const provAreas = provinces.map(pv => {
+    return dists.filter(d=>d.province===pv).reduce((s,d)=>{
+      const b=benes.find(b=>b.id===d.beneficiaryId); return s+(b?b.farmSize:0);
+    },0).toFixed(2);
+  });
+
+  document.getElementById('page-body').innerHTML = `
+    <!-- KPIs -->
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Seeds Distributed</div><div class="kpi-value">${dists.length}</div><div class="kpi-sub">distribution events</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Area Planted</div><div class="kpi-value">${totalArea.toFixed(2)}</div><div class="kpi-sub">hectares total</div></div>
+      <div class="kpi-tile ${rateColor(estRate)}"><div class="kpi-label">Establishment Rate</div><div class="kpi-value">${estRate}%</div>
+        <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(estRate)}" style="width:${estRate}%"></div></div></div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">Mango Trees Treated</div><div class="kpi-value">${mangos.reduce((s,m)=>s+m.treesTreated,0)}</div><div class="kpi-sub">${mangos.length} induction records</div></div>
+    </div>
+
+    <!-- Establishment breakdown -->
+    <div class="kpi-grid cols-3" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Good Establishment</div><div class="kpi-value" style="color:var(--green-700)">${good}</div><div class="kpi-sub">plots with ≥80% stand</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">Fair Establishment</div><div class="kpi-value" style="color:var(--gold-500)">${fair}</div><div class="kpi-sub">plots 50–79% stand</div></div>
+      <div class="kpi-tile red"><div class="kpi-label">Poor Establishment</div><div class="kpi-value" style="color:var(--red-500)">${poor}</div><div class="kpi-sub">plots below 50% stand</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Distributions by Crop Type</div>
+        <div id="crop-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Area Planted by Province (ha)</div>
+        <div id="prov-chart"></div>
+      </div>
+    </div>
+
+    <!-- Distribution table -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-header">
+        <div class="section-title">Seed &amp; Planting Material Distribution Records <small>${dists.length} records</small></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.DISTRIBUTIONS).filter(d=>d.inputType==='Seed'||d.inputType==='Planting Mat'),'so1_distributions.csv')">${ICONS.download} Export</button>
+          <a href="distributions.html" class="btn btn-primary btn-sm">${ICONS.plus} Add Distribution</a>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Beneficiary</th><th>Municipality</th><th>Province</th><th>Product</th><th>Quantity</th><th>Focal Person</th><th>Establishment</th></tr></thead>
+          <tbody>
+            ${dists.length===0?'<tr><td colspan="8" style="text-align:center;color:var(--gray-400)">No records yet</td></tr>':
+              dists.map(d=>`<tr>
+                <td>${fmt.date(d.distributionDate)}</td>
+                <td><strong>${d.beneficiaryName}</strong></td>
+                <td>${d.municipality}</td>
+                <td>${d.province}</td>
+                <td>${d.product}</td>
+                <td>${d.quantity} ${d.unit}</td>
+                <td style="font-size:.76rem">${d.focalPerson||'—'}</td>
+                <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Not yet visited</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mango Induction table -->
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Mango Flowering Induction Records <small>${mangos.length} records</small></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('mango-modal')">${ICONS.plus} Add Record</button>
+      </div>
+      ${mangos.length===0?'<div class="empty-state"><p>No mango induction records yet. Add records to track flowering progress.</p></div>':
+      `<div class="table-wrap">
+        <table>
+          <thead><tr><th>Municipality</th><th>Province</th><th>Farmer/FCA</th><th>Age Class</th><th>Assessed</th><th>Ready</th><th>Treated</th><th>Inducer</th><th>Date</th><th>45-Day Flower%</th><th>90-Day Fruit%</th></tr></thead>
+          <tbody>
+            ${mangos.map(m=>`<tr>
+              <td>${m.municipality}</td><td>${m.province}</td>
+              <td><strong>${m.farmer}</strong></td>
+              <td><span class="badge gray">${m.ageClass}</span></td>
+              <td>${m.treesAssessed}</td>
+              <td>${m.treesReady}</td>
+              <td><strong>${m.treesTreated}</strong></td>
+              <td style="font-size:.74rem">${m.inducerUsed}</td>
+              <td>${fmt.date(m.inductionDate)}</td>
+              <td>${m.day45Flowering>0?`<span class="badge ${m.day45Flowering>=70?'green':'amber'}">${m.day45Flowering}%</span>`:'<span class="badge gray">Pending</span>'}</td>
+              <td>${m.day90FruitSet>0?`<span class="badge green">${m.day90FruitSet}%</span>`:'<span class="badge gray">Pending</span>'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+      <div style="margin-top:10px;padding:8px;background:var(--green-50);border-radius:4px;font-size:.76rem;color:var(--green-800)">
+        <strong>Technical Note:</strong> Century-old trees: 2 drums/tree. 10–15 yr: 15 trees/drum. 16–30 yr: 7 trees/drum.
+        Inducer: 2kg KNO₃ + 4kg Ca(NO₃)₂, or CaNO₃ alternative (6kg). Apply only to trees with matured deep green leaves.
+        Source: Ibarra et al. 2025.
+      </div>
+    </div>
+  `;
+
+  renderBarChart('crop-chart', mangoCrops, cropCounts);
+  renderBarChart('prov-chart', provinces.length?provinces:['No data'], provinces.length?provAreas.map(Number):[0], 'var(--green-400)');
+}
+
+function saveMango() {
+  const record = {
+    municipality: document.getElementById('mg-municipality').value.trim(),
+    province: document.getElementById('mg-province').value,
+    farmer: document.getElementById('mg-farmer').value.trim(),
+    rsbsa: document.getElementById('mg-rsbsa').value.trim(),
+    treesAssessed: +document.getElementById('mg-assessed').value,
+    treesReady: +document.getElementById('mg-ready').value,
+    treesTreated: +document.getElementById('mg-treated').value,
+    ageClass: document.getElementById('mg-ageclass').value,
+    inducerUsed: document.getElementById('mg-inducer').value,
+    inductionDate: document.getElementById('mg-date').value,
+    day45Flowering: +document.getElementById('mg-d45').value,
+    day90FruitSet: +document.getElementById('mg-d90').value,
+    status: 'Treated',
+  };
+  if (!record.municipality || !record.farmer) { toast('Municipality and Farmer name are required','error'); return; }
+  DB.add(DB.KEYS.MANGO, record);
+  closeModal('mango-modal');
+  toast('Mango induction record saved');
+  render();
+}
+</script>
+</body>
+</html>

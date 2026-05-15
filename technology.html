@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Technology Monitoring — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Technology Monitoring</span>
+      <span class="topbar-subtitle">— Rain Shelters, INS, SPIS &amp; Mechanization</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<div class="modal-overlay hidden" id="tech-modal">
+  <div class="modal-box">
+    <div class="modal-header"><span id="modal-title">Add Technology Record</span><button class="modal-close" onclick="closeModal('tech-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Technology Type<span class="req">*</span></label>
+          <select id="t-type"><option>INS-1hp</option><option>INS-2hp</option><option>INS-3hp</option><option>Rain Shelter</option><option>SPIS</option><option>Mechanization-R4D</option></select></div>
+        <div class="form-group"><label class="form-label">Province</label>
+          <select id="t-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="t-muni"></div>
+        <div class="form-group"><label class="form-label">Barangay</label><input id="t-barangay"></div>
+        <div class="form-group"><label class="form-label">Beneficiary / FCA<span class="req">*</span></label><input id="t-bene"></div>
+        <div class="form-group"><label class="form-label">Installation Date</label><input id="t-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Functional?</label>
+          <select id="t-func"><option value="true">Yes — Functional</option><option value="false">No — Non-functional</option></select></div>
+        <div class="form-group"><label class="form-label">Area Served (ha)</label><input id="t-area" type="number" step="0.1" value="0"></div>
+        <div class="form-group"><label class="form-label">Last Check Date</label><input id="t-lastcheck" type="date"></div>
+        <div class="form-group"><label class="form-label">GPS Lat</label><input id="t-lat" type="number" step="0.0001"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Issue / Non-Functionality Reason (if any)</label>
+        <input id="t-issue" placeholder="Describe issue if non-functional"></div>
+      <input type="hidden" id="t-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('tech-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTech()">Save</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('technology.html');
+  document.getElementById('t-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('t-lastcheck').value = new Date().toISOString().split('T')[0];
+  render();
+});
+
+function render() {
+  const techs = DB.get(DB.KEYS.TECH);
+  const types = ['INS-1hp','INS-2hp','INS-3hp','Rain Shelter','SPIS'];
+  const functional = techs.filter(t=>t.functional).length;
+  const nonFunc = techs.filter(t=>!t.functional).length;
+  const funcRate = techs.length>0?Math.round(functional/techs.length*100):0;
+  const areaTotal = techs.filter(t=>t.functional).reduce((s,t)=>s+(t.areaServed||0),0);
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile blue"><div class="kpi-label">Total Units</div><div class="kpi-value">${techs.length}</div></div>
+      <div class="kpi-tile ${rateColor(funcRate)}"><div class="kpi-label">Functionality Rate</div><div class="kpi-value">${funcRate}%</div>
+        <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(funcRate)}" style="width:${funcRate}%"></div></div></div></div>
+      <div class="kpi-tile red"><div class="kpi-label">Non-Functional</div><div class="kpi-value">${nonFunc}</div><div class="kpi-sub">Require action</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Area Served</div><div class="kpi-value">${areaTotal.toFixed(1)}</div><div class="kpi-sub">ha (functional only)</div></div>
+    </div>
+    ${nonFunc>0?`<div class="alert-banner red">${ICONS.alert}<div><strong>${nonFunc} non-functional unit(s)</strong>: ${techs.filter(t=>!t.functional).map(t=>`${t.type} in ${t.municipality} — ${t.issue||'No reason given'}`).join('; ')}</div></div>`:''}
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Units by Technology Type</div>
+        <div id="type-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Functionality Status</div>
+        <div style="display:flex;align-items:center;gap:24px;padding:12px 0">
+          <div id="donut-func" style="flex:0 0 120px"></div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;background:var(--green-500);display:inline-block;border-radius:2px"></span><span style="font-size:.82rem">Functional: <strong>${functional}</strong></span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;background:var(--red-500);display:inline-block;border-radius:2px"></span><span style="font-size:.82rem">Non-functional: <strong>${nonFunc}</strong></span></div>
+            <div style="margin-top:10px;font-size:.78rem;color:var(--gray-600)">Total area served: <strong>${areaTotal.toFixed(1)} ha</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Technology Units <small>${techs.length} records</small></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.TECH),'technology.csv')">${ICONS.download} CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddTech()">${ICONS.plus} Add Unit</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Municipality</th><th>Province</th><th>Beneficiary/FCA</th><th>Installed</th><th>Status</th><th>Area (ha)</th><th>Issue</th><th>Last Check</th><th>Act.</th></tr></thead>
+          <tbody>
+            ${techs.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records</td></tr>':
+              techs.map(t=>`<tr ${!t.functional?'style="background:var(--red-100)"':''}>
+                <td><span class="badge blue">${t.type}</span></td>
+                <td>${t.municipality}</td><td>${t.province}</td>
+                <td>${t.beneficiary}</td>
+                <td>${fmt.date(t.installDate)}</td>
+                <td>${fmt.statusBadge(t.functional?'Functional':'Non-functional')}</td>
+                <td style="font-family:var(--font-mono)">${t.functional?(t.areaServed||0)+' ha':'—'}</td>
+                <td style="font-size:.76rem;color:var(--red-500)">${t.issue||'—'}</td>
+                <td style="font-size:.76rem">${fmt.date(t.lastCheck)}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-secondary btn-sm" onclick="editTech('${t.id}')">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" onclick="delTech('${t.id}')">${ICONS.trash}</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  renderBarChart('type-chart', types, types.map(t=>techs.filter(x=>x.type===t).length), 'var(--blue-500)');
+  renderDonut('donut-func', functional, techs.length||1);
+}
+
+function openAddTech() {
+  document.getElementById('modal-title').textContent='Add Technology Record';
+  document.getElementById('t-edit-id').value='';
+  ['t-muni','t-barangay','t-bene','t-issue'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('t-area').value='0';
+  document.getElementById('t-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('t-lastcheck').value=new Date().toISOString().split('T')[0];
+  openModal('tech-modal');
+}
+function editTech(id) {
+  const t=DB.get(DB.KEYS.TECH).find(x=>x.id===id); if(!t)return;
+  document.getElementById('modal-title').textContent='Edit Technology Record';
+  document.getElementById('t-edit-id').value=id;
+  document.getElementById('t-type').value=t.type;
+  document.getElementById('t-province').value=t.province;
+  document.getElementById('t-muni').value=t.municipality;
+  document.getElementById('t-barangay').value=t.barangay||'';
+  document.getElementById('t-bene').value=t.beneficiary;
+  document.getElementById('t-date').value=t.installDate||'';
+  document.getElementById('t-func').value=String(t.functional);
+  document.getElementById('t-area').value=t.areaServed||0;
+  document.getElementById('t-lastcheck').value=t.lastCheck||'';
+  document.getElementById('t-issue').value=t.issue||'';
+  document.getElementById('t-lat').value=t.lat||'';
+  openModal('tech-modal');
+}
+function saveTech() {
+  const muni=document.getElementById('t-muni').value.trim();
+  const bene=document.getElementById('t-bene').value.trim();
+  if(!muni||!bene){toast('Municipality and beneficiary required','error');return;}
+  const rec={type:document.getElementById('t-type').value,province:document.getElementById('t-province').value,municipality:muni,barangay:document.getElementById('t-barangay').value.trim(),beneficiary:bene,installDate:document.getElementById('t-date').value,functional:document.getElementById('t-func').value==='true',areaServed:+document.getElementById('t-area').value,lastCheck:document.getElementById('t-lastcheck').value,issue:document.getElementById('t-issue').value.trim(),lat:+document.getElementById('t-lat').value||null};
+  const eid=document.getElementById('t-edit-id').value;
+  if(eid){DB.update(DB.KEYS.TECH,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.TECH,rec);toast('Saved');}
+  closeModal('tech-modal');render();
+}
+function delTech(id){if(!confirm('Delete?'))return;DB.remove(DB.KEYS.TECH,id);render();}
+</script>
+</body>
+</html>

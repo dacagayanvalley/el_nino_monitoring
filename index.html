@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Executive Dashboard — DA-RFO2 Monitoring</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <span class="topbar-title">Executive Dashboard</span>
+        <span class="topbar-subtitle">— Overall Implementation Progress</span>
+      </div>
+      <span class="topbar-badge" id="last-updated"></span>
+      <button class="btn btn-secondary btn-sm" onclick="renderAll()">
+        ${''}<span>Refresh</span>
+      </button>
+    </div>
+    <div class="page-body" id="page-body">
+      <!-- dynamic content -->
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('index.html');
+  renderAll();
+  document.getElementById('last-updated').textContent = 'As of ' + new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+});
+
+function renderAll() {
+  const s = DB.summary();
+  const issues = DB.get(DB.KEYS.ISSUES);
+  const openIssues = issues.filter(i => i.status !== 'Resolved');
+  const highPest = DB.get(DB.KEYS.PEST).filter(p => p.severity === 'High' || p.severity === 'Severe');
+  const munis = DB.get(DB.KEYS.MUNICIPALITIES);
+  const benes = DB.get(DB.KEYS.BENEFICIARIES);
+  const timeline = DB.get(DB.KEYS.TIMELINE);
+  const settings = DB.settings();
+  const pendingSync = DB.getSyncQueue().length;
+
+  const body = document.getElementById('page-body');
+
+  // Alerts
+  let alerts = '';
+  if (highPest.length) alerts += `<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT:</strong> ${highPest.length} high/severe pest report(s) recorded — immediate BCA deployment review needed. <a href="pest.html" style="color:inherit;font-weight:700">View Reports →</a></div></div>`;
+  if (openIssues.filter(i=>i.status==='Open').length) alerts += `<div class="alert-banner amber">${ICONS.alert}<div><strong>${openIssues.filter(i=>i.status==='Open').length} open issue(s)</strong> require management action. <a href="issues.html" style="color:inherit;font-weight:700">View Issues →</a></div></div>`;
+
+  alerts += `<div class="alert-banner ${settings.syncEnabled?'green':'amber'}">${ICONS.cloud}<div><strong>Database Storage:</strong> ${settings.syncEnabled?'Google Sheet sync enabled':'Google Sheet storage not yet connected'}${settings.googleSheetUrl?` · <a href="${settings.googleSheetUrl}" target="_blank" style="color:inherit;font-weight:700">Open Sheet</a>`:''}${pendingSync?` · ${pendingSync} pending sync event(s)`:''}</div></div>`;
+
+  // Province breakdown
+  const provinces = [...new Set(benes.map(b=>b.province))];
+  const provRows = provinces.map(prov => {
+    const pb = benes.filter(b=>b.province===prov);
+    const pm = munis.filter(m=>m.province===prov&&m.confirmed);
+    return `<tr><td><strong>${prov}</strong></td>
+      <td>${pm.length}</td>
+      <td>${pb.length}</td>
+      <td>${pb.filter(b=>b.sex==='Female').length}</td>
+      <td>${pb.filter(b=>b.farmSize<=0.5).length}</td>
+      <td>${fmt.statusBadge('Distributed')}</td>
+    </tr>`;
+  }).join('');
+
+  // Crop distribution bar
+  const crops = ['Mungbean','Peanut','Watermelon','Onion','Ube','Mango'];
+  const dists = DB.get(DB.KEYS.DISTRIBUTIONS);
+  const cropCounts = crops.map(c => dists.filter(d => (d.product||'').toLowerCase().includes(c.toLowerCase())).length);
+
+  // Pest by province
+  const pests = DB.get(DB.KEYS.PEST);
+  const pestProvs = [...new Set(pests.map(p=>p.province))];
+  const pestCounts = pestProvs.map(p => pests.filter(x=>x.province===p).length);
+
+  body.innerHTML = `
+    ${alerts}
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-header">
+        <div class="section-title">Weekly Timeline Targets <small>Embedded intervention schedule</small></div>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.TIMELINE),'weekly_timeline_targets.csv')">${ICONS.download} Export</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Week</th><th>Target Dates</th><th>Objective</th><th>Intervention</th><th>Weekly Target</th><th>Owner</th><th>Status</th></tr></thead>
+          <tbody>
+            ${timeline.map(t => `<tr>
+              <td style="font-family:var(--font-mono);font-weight:700">${t.week}</td>
+              <td>${fmt.date(t.startDate)} - ${fmt.date(t.endDate)}</td>
+              <td><span class="badge blue">${t.objective}</span></td>
+              <td><strong>${t.intervention}</strong></td>
+              <td style="font-size:.78rem">${t.target}</td>
+              <td style="font-size:.76rem">${t.owner}</td>
+              <td>${fmt.statusBadge(t.status)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── KPI Row 1 ── -->
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile">
+        <div class="kpi-label">Municipalities Validated</div>
+        <div class="kpi-value">${s.munisValidated}</div>
+        <div class="kpi-sub">of ${s.munisTotal} total</div>
+        <div style="margin-top:8px">
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${Math.round(s.munisValidated/s.munisTotal*100)}%"></div></div>
+        </div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Farmers/Beneficiaries</div>
+        <div class="kpi-value">${s.beneficiariesCount}</div>
+        <div class="kpi-sub">${s.fcasCount} FCAs engaged</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Area Planted (ha)</div>
+        <div class="kpi-value">${s.areaPlantedHa}</div>
+        <div class="kpi-sub">Mitigation crops</div>
+      </div>
+      <div class="kpi-tile ${rateColor(s.cropEstablishmentRate)}">
+        <div class="kpi-label">Crop Establishment Rate</div>
+        <div class="kpi-value">${s.cropEstablishmentRate}%</div>
+        <div style="margin-top:8px">
+          <div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(s.cropEstablishmentRate)}" style="width:${s.cropEstablishmentRate}%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KPI Row 2 ── -->
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile amber">
+        <div class="kpi-label">Seeds Distributed</div>
+        <div class="kpi-value">${s.seedsDistributed}</div>
+        <div class="kpi-sub">distribution events</div>
+      </div>
+      <div class="kpi-tile amber">
+        <div class="kpi-label">Mango Trees Treated</div>
+        <div class="kpi-value">${s.mangoTreesTreated}</div>
+        <div class="kpi-sub">Flowering induction</div>
+      </div>
+      <div class="kpi-tile blue">
+        <div class="kpi-label">Technology Sites</div>
+        <div class="kpi-value">${s.techSitesCount}</div>
+        <div class="kpi-sub">${s.techFunctionalityRate}% functional · ${s.areaServedHa} ha served</div>
+      </div>
+      <div class="kpi-tile blue">
+        <div class="kpi-label">Pest Reports (KoboToolbox)</div>
+        <div class="kpi-value">${s.pestReports}</div>
+        <div class="kpi-sub">${highPest.length} high/severe alerts</div>
+      </div>
+    </div>
+
+    <!-- ── KPI Row 3 ── -->
+    <div class="kpi-grid cols-4" style="margin-bottom:20px">
+      <div class="kpi-tile">
+        <div class="kpi-label">Biofertilizer Adoption</div>
+        <div class="kpi-value">${s.biofertAdoptionRate}%</div>
+        <div style="margin-top:8px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(s.biofertAdoptionRate)}" style="width:${s.biofertAdoptionRate}%"></div></div></div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">BCA Adoption</div>
+        <div class="kpi-value">${s.bcaAdoptionRate}%</div>
+        <div style="margin-top:8px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(s.bcaAdoptionRate)}" style="width:${s.bcaAdoptionRate}%"></div></div></div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Women Beneficiaries</div>
+        <div class="kpi-value">${s.womenCount}</div>
+        <div class="kpi-sub">${s.womenPct}% of total — GEDSI</div>
+      </div>
+      <div class="kpi-tile ${openIssues.length > 2 ? 'red' : openIssues.length > 0 ? 'amber' : ''}">
+        <div class="kpi-label">Open Issues</div>
+        <div class="kpi-value">${openIssues.length}</div>
+        <div class="kpi-sub">${issues.filter(i=>i.status==='Resolved').length} resolved</div>
+      </div>
+    </div>
+
+    <!-- ── Charts + Table Row ── -->
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Distributions by Crop/Input Type</div>
+        <div id="crop-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pest Surveillance Reports by Province</div>
+        <div id="pest-chart"></div>
+      </div>
+    </div>
+
+    <!-- ── Objective Progress ── -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Objective Progress Summary</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div style="text-align:center">
+          <div id="donut-so1"></div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO1 — Planting & Mango</div>
+          <div style="font-size:.72rem;color:var(--gray-500)">${s.seedsDistributed} distributions, ${s.mangoTreesTreated} trees treated</div>
+        </div>
+        <div style="text-align:center">
+          <div id="donut-so2"></div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO2 — Technologies & R4D</div>
+          <div style="font-size:.72rem;color:var(--gray-500)">${s.techSitesCount} sites, ${s.techFunctionalityRate}% functional</div>
+        </div>
+        <div style="text-align:center">
+          <div id="donut-so3"></div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO3 — Biofert, BCAs & Pests</div>
+          <div style="font-size:.72rem;color:var(--gray-500)">${s.bioDistributed+s.bcaDistributed} inputs distributed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Province Breakdown Table ── -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">Beneficiary Coverage by Province</div>
+          <a href="beneficiaries.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">View All →</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Province</th><th>Munis</th><th>Beneficiaries</th><th>Women</th><th>≤0.5 ha</th><th>Status</th></tr></thead>
+            <tbody>${provRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">Open Issues</div>
+          <a href="issues.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">All Issues →</a>
+        </div>
+        ${openIssues.length === 0
+          ? `<div class="empty-state"><p>No open issues 🎉</p></div>`
+          : openIssues.map(iss => `
+          <div style="border-left:3px solid ${iss.status==='Open'?'var(--red-500)':'var(--gold-500)'};padding:8px 10px;margin-bottom:8px;background:var(--gray-50);border-radius:0 4px 4px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:.8rem;font-weight:600;color:var(--gray-800)">${iss.description.substring(0,70)}${iss.description.length>70?'…':''}</span>
+              ${fmt.statusBadge(iss.status)}
+            </div>
+            <div style="font-size:.72rem;color:var(--gray-500);margin-top:3px">${fmt.date(iss.dateDetected)} · ${iss.responsible}</div>
+          </div>`).join('')
+        }
+      </div>
+    </div>
+
+    <!-- ── GEDSI Summary ── -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">GEDSI Summary — Beneficiary Disaggregation</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        ${[
+          ['Women',s.womenCount,s.beneficiariesCount,'#be185d','w'],
+          ['Smallholders (≤0.5 ha)',s.smallholdersCount,s.beneficiariesCount,'#15803d','gi'],
+          ['Senior (60+)',benes.filter(b=>b.ageGroup==='60+').length,s.beneficiariesCount,'#92400e','sr'],
+          ['Youth (18-35)',benes.filter(b=>b.ageGroup==='18-35').length,s.beneficiariesCount,'#0369a1','yt'],
+          ['IP',benes.filter(b=>b.ip).length,s.beneficiariesCount,'#6d28d9','ip'],
+          ['PWD',benes.filter(b=>b.pwd).length,s.beneficiariesCount,'#7c3aed','pw'],
+          ['GIDA',benes.filter(b=>b.gida).length,s.beneficiariesCount,'#1f7a47','gi'],
+        ].map(([label,count,total,color,chipClass]) => `
+          <div style="min-width:120px">
+            <div style="font-size:.7rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${label}</div>
+            <div style="font-size:1.4rem;font-weight:700;color:${color};font-family:var(--font-mono)">${count}</div>
+            <div style="font-size:.72rem;color:var(--gray-500)">${total>0?Math.round(count/total*100):0}% of beneficiaries</div>
+            <div class="progress-bar-wrap" style="margin-top:4px;height:4px">
+              <div class="progress-bar-fill" style="width:${total>0?Math.round(count/total*100):0}%;background:${color}"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Render charts
+  renderBarChart('crop-chart', crops, cropCounts);
+  renderBarChart('pest-chart', pestProvs.length ? pestProvs : ['No Data'], pestProvs.length ? pestCounts : [0], 'var(--orange-500)');
+  renderDonut('donut-so1', s.seedsDistributed, 20, 'var(--green-500)', 'Distributions');
+  renderDonut('donut-so2', DB.get(DB.KEYS.TECH).filter(t=>t.functional).length, s.techSitesCount || 1, 'var(--blue-500)', 'Functional');
+  renderDonut('donut-so3', s.biofertAdoptionRate, 100, 'var(--gold-500)', 'Adoption%');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Field Reports — DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Field Reports</span>
+      <span class="topbar-subtitle">— Weekly Monitoring Updates from AEWs</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<div class="modal-overlay hidden" id="fr-modal">
+  <div class="modal-box" style="max-width:780px">
+    <div class="modal-header"><span id="fr-modal-title">Submit Weekly Field Report</span><button class="modal-close" onclick="closeModal('fr-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">AEW Name<span class="req">*</span></label><input id="fr-aew"></div>
+        <div class="form-group"><label class="form-label">Province</label><select id="fr-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="fr-muni"></div>
+        <div class="form-group"><label class="form-label">Period Start</label><input id="fr-start" type="date"></div>
+        <div class="form-group"><label class="form-label">Period End</label><input id="fr-end" type="date"></div>
+        <div class="form-group"><label class="form-label">Status</label><select id="fr-status"><option>Submitted</option><option>Draft</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:10px"><label class="form-label">Distribution Summary This Week</label>
+        <textarea id="fr-dist" placeholder="Number of beneficiaries served, inputs distributed, quantities..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Crop Establishment Summary</label>
+        <textarea id="fr-estab" placeholder="Number of plots visited, establishment status observed..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Pest & Crop Condition Summary</label>
+        <textarea id="fr-pest" placeholder="Pest observations, severity, actions taken..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Technology Status</label>
+        <textarea id="fr-tech" placeholder="Technology units checked, functionality status..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Issues & Concerns</label>
+        <textarea id="fr-issues" placeholder="Problems encountered, delays, access issues..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Actions Taken or Recommended</label>
+        <textarea id="fr-actions"></textarea></div>
+      <input type="hidden" id="fr-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('fr-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('fieldreports.html');
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fr-end').value = today;
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  document.getElementById('fr-start').value = weekAgo.toISOString().split('T')[0];
+  render();
+});
+
+function render() {
+  const reports = DB.get(DB.KEYS.FIELD_REPORTS);
+  const submitted = reports.filter(r=>r.status==='Submitted').length;
+  const provinces = [...new Set(reports.map(r=>r.province))];
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="kpi-grid cols-3" style="margin-bottom:16px">
+      <div class="kpi-tile blue"><div class="kpi-label">Total Reports</div><div class="kpi-value">${reports.length}</div></div>
+      <div class="kpi-tile ${rateColor(reports.length>0?Math.round(submitted/reports.length*100):0)}"><div class="kpi-label">Submitted</div><div class="kpi-value">${submitted}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Provinces Reporting</div><div class="kpi-value">${provinces.length}</div></div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Weekly Field Reports <small>${reports.length} reports</small></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.FIELD_REPORTS),'fieldreports.csv')">${ICONS.download} CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openFRModal()">${ICONS.plus} Submit Report</button>
+        </div>
+      </div>
+      ${reports.length===0?'<div class="empty-state"><p>No reports yet. AEWs submit weekly by Friday 5PM.</p></div>':
+        reports.map(r=>`
+          <div style="border:1px solid var(--gray-200);border-radius:6px;padding:14px;margin-bottom:10px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;font-size:.9rem">${r.aew} — ${r.municipality}, ${r.province}</div>
+                <div style="font-size:.76rem;color:var(--gray-500);margin-top:2px">Period: ${fmt.date(r.periodStart)} – ${fmt.date(r.periodEnd)} &nbsp;|&nbsp; Submitted: ${fmt.date(r.createdAt)}</div>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                ${fmt.statusBadge(r.status)}
+                <button class="btn btn-secondary btn-sm" onclick="editReport('${r.id}')">${ICONS.edit}</button>
+                <button class="btn btn-danger btn-sm" onclick="delReport('${r.id}')">${ICONS.trash}</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+              ${[['Distributions',r.distributionsSummary],['Establishment',r.establishmentSummary],['Pest/Disease',r.pestSummary],['Technology',r.techSummary]].map(([l,v])=>`
+                <div style="background:var(--gray-50);padding:8px 10px;border-radius:4px">
+                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-500);margin-bottom:3px">${l}</div>
+                  <div style="font-size:.8rem;color:var(--gray-700)">${v||'—'}</div>
+                </div>`).join('')}
+            </div>
+            ${r.issues?`<div style="margin-top:8px;background:var(--orange-100);padding:8px 10px;border-radius:4px">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--orange-500);margin-bottom:2px">Issues</div>
+              <div style="font-size:.8rem">${r.issues}</div></div>`:''}
+            ${r.actions?`<div style="margin-top:6px;background:var(--green-50);padding:8px 10px;border-radius:4px">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--green-700);margin-bottom:2px">Actions</div>
+              <div style="font-size:.8rem">${r.actions}</div></div>`:''}
+          </div>`).join('')}
+    </div>
+  `;
+}
+
+function openFRModal(){
+  document.getElementById('fr-modal-title').textContent='Submit Weekly Field Report';
+  document.getElementById('fr-edit-id').value='';
+  ['fr-aew','fr-muni','fr-dist','fr-estab','fr-pest','fr-tech','fr-issues','fr-actions'].forEach(id=>document.getElementById(id).value='');
+  openModal('fr-modal');
+}
+
+function editReport(id) {
+  const r=DB.get(DB.KEYS.FIELD_REPORTS).find(x=>x.id===id); if(!r)return;
+  document.getElementById('fr-modal-title').textContent='Edit Report';
+  document.getElementById('fr-edit-id').value=id;
+  document.getElementById('fr-aew').value=r.aew;
+  document.getElementById('fr-province').value=r.province;
+  document.getElementById('fr-muni').value=r.municipality;
+  document.getElementById('fr-start').value=r.periodStart;
+  document.getElementById('fr-end').value=r.periodEnd;
+  document.getElementById('fr-status').value=r.status;
+  document.getElementById('fr-dist').value=r.distributionsSummary;
+  document.getElementById('fr-estab').value=r.establishmentSummary;
+  document.getElementById('fr-pest').value=r.pestSummary;
+  document.getElementById('fr-tech').value=r.techSummary;
+  document.getElementById('fr-issues').value=r.issues||'';
+  document.getElementById('fr-actions').value=r.actions||'';
+  openModal('fr-modal');
+}
+
+function saveReport(){
+  const aew=document.getElementById('fr-aew').value.trim();
+  const muni=document.getElementById('fr-muni').value.trim();
+  if(!aew||!muni){toast('AEW and municipality required','error');return;}
+  const rec={aew,province:document.getElementById('fr-province').value,municipality:muni,periodStart:document.getElementById('fr-start').value,periodEnd:document.getElementById('fr-end').value,status:document.getElementById('fr-status').value,distributionsSummary:document.getElementById('fr-dist').value.trim(),establishmentSummary:document.getElementById('fr-estab').value.trim(),pestSummary:document.getElementById('fr-pest').value.trim(),techSummary:document.getElementById('fr-tech').value.trim(),issues:document.getElementById('fr-issues').value.trim(),actions:document.getElementById('fr-actions').value.trim()};
+  const eid=document.getElementById('fr-edit-id').value;
+  if(eid){DB.update(DB.KEYS.FIELD_REPORTS,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.FIELD_REPORTS,rec);toast('Report submitted');}
+  closeModal('fr-modal');render();
+}
+function delReport(id){if(!confirm('Delete report?'))return;DB.remove(DB.KEYS.FIELD_REPORTS,id);render();}
+</script>
+</body>
+</html>
