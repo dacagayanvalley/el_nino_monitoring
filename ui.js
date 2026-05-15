@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ── Navigation config ─────────────────────────────────────────────
+const APP_TITLE = 'Department of Agriculture Cagayan Valley - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)';
+
 const NAV = [
   { group: 'Overview', items: [
     { label:'Executive Dashboard', href:'index.html',       icon:'grid' },
@@ -110,6 +112,7 @@ Theme.apply();
 function buildSidebar(activePage) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
+  document.title = APP_TITLE;
 
   const issues = DB.get(DB.KEYS.ISSUES).filter(i => i.status !== 'Resolved').length;
   const highPest = DB.get(DB.KEYS.PEST).filter(p => p.severity === 'High' || p.severity === 'Severe').length;
@@ -120,8 +123,8 @@ function buildSidebar(activePage) {
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.9)">DA-RFO2</span>
       </div>
-      <div class="org-name">Department of Agriculture</div>
-      <div class="sys-title">Climate Adaptation<br>Monitoring System</div>
+      <div class="org-name">Department of Agriculture Cagayan Valley</div>
+      <div class="sys-title">iCAMMS</div>
     </div>
     <nav class="sidebar-nav">
       ${NAV.map(group => `
@@ -271,6 +274,7 @@ const fmt = {
   date: d => d ? new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—',
   datetime: d => d ? new Date(d).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—',
   num:  n => Number(n).toLocaleString(),
+  money: n => `PHP ${Number(n || 0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   pct:  n => `${n}%`,
   ha:   n => `${n} ha`,
   statusBadge: s => {
@@ -278,7 +282,7 @@ const fmt = {
       'Functional':'green','Non-functional':'red','Intermittent':'amber',
       'Submitted':'green','Open':'red','In Progress':'amber','Resolved':'green',
       'Treated':'green','Pending Induction':'amber',
-      'Very High':'red','High':'amber','Moderate':'gray','Low':'gray',
+      'Very High':'red','High':'amber','Moderate':'gray','Low':'gray','Very Low':'green','For Validation':'blue','For validation':'blue',
       'None':'green','Severe':'red' };
     const c = map[s] || 'gray';
     return `<span class="badge ${c}">${s}</span>`;

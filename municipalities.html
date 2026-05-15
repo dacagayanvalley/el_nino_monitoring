@@ -30,7 +30,7 @@
         <div class="form-group"><label class="form-label">PAGASA Drought Status</label>
           <select id="m-pagasa"><option>Dry Condition</option><option>Dry Spell</option><option>Drought</option><option>Normal</option><option>For validation</option></select></div>
         <div class="form-group"><label class="form-label">CRVA Risk Level</label>
-          <select id="m-risk"><option>High</option><option>Moderate</option><option>Low</option><option>For validation</option></select></div>
+          <select id="m-risk"><option>Very High</option><option>High</option><option>Moderate</option><option>Low</option><option>Very Low</option><option>For Validation</option></select></div>
         <div class="form-group"><label class="form-label">Validation Result</label>
           <select id="m-result"><option>Confirmed</option><option>For revalidation</option><option>Not eligible</option></select></div>
         <div class="form-group"><label class="form-label">Affected Barangays</label><input id="m-barangays" placeholder="Comma-separated or count"></div>
@@ -100,7 +100,7 @@ function render() {
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile blue"><div class="kpi-label">Validated Municipalities</div><div class="kpi-value">${all.length}</div></div>
       <div class="kpi-tile"><div class="kpi-label">Confirmed</div><div class="kpi-value">${confirmed}</div></div>
-      <div class="kpi-tile amber"><div class="kpi-label">High Risk</div><div class="kpi-value">${all.filter(r=>(r.crvaRisk||r.riskLevel)==='High').length}</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">High / Very High Risk</div><div class="kpi-value">${all.filter(r=>['Very High','High'].includes(r.crvaRisk||r.riskLevel)).length}</div></div>
       <div class="kpi-tile"><div class="kpi-label">Filtered</div><div class="kpi-value">${rows.length}</div></div>
     </div>
     <div class="card">
@@ -109,7 +109,7 @@ function render() {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input placeholder="Search municipality / crop..." style="width:210px" value="${searchQ}" oninput="searchQ=this.value;render()">
           <select onchange="filterProvince=this.value;render()"><option value="">All Provinces</option>${provinces.map(p=>`<option ${filterProvince===p?'selected':''}>${p}</option>`).join('')}</select>
-          <select onchange="filterRisk=this.value;render()"><option value="">All Risk</option>${['High','Moderate','Low','For validation'].map(r=>`<option ${filterRisk===r?'selected':''}>${r}</option>`).join('')}</select>
+          <select onchange="filterRisk=this.value;render()"><option value="">All Risk</option>${['Very High','High','Moderate','Low','Very Low','For Validation'].map(r=>`<option ${filterRisk===r?'selected':''}>${r}</option>`).join('')}</select>
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.MUNICIPALITIES),'municipalities.csv')">${ICONS.download} CSV</button>
           <button class="btn btn-primary btn-sm" data-access="write" onclick="openMuniModal()">${ICONS.plus} Add</button>
         </div>
@@ -162,7 +162,7 @@ function editMunicipality(id) {
   document.getElementById('m-province').value = r.province || 'Isabela';
   document.getElementById('m-name').value = r.municipality || '';
   document.getElementById('m-pagasa').value = r.pagasaStatus || 'For validation';
-  document.getElementById('m-risk').value = r.crvaRisk || r.riskLevel || 'For validation';
+  document.getElementById('m-risk').value = r.crvaRisk || r.riskLevel || 'For Validation';
   document.getElementById('m-result').value = r.validationResult || (r.confirmed?'Confirmed':'For revalidation');
   document.getElementById('m-barangays').value = r.affectedBarangays || '';
   document.getElementById('m-farmers').value = r.estimatedFarmers || '';

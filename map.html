@@ -95,7 +95,7 @@ const MUNI_COORDS = {
   'Cabarroguis':     [16.5083, 121.5102],
 };
 
-const CRVA_COLOR = { 'Very High':'#c0392b', 'High':'#e06c1a', 'Moderate':'#c9912b', 'Low':'#27944f' };
+const CRVA_COLOR = { 'Very High':'#c0392b', 'High':'#e06c1a', 'Moderate':'#c9912b', 'Low':'#27944f', 'Very Low':'#7fb069', 'For Validation':'#4b5563', 'For validation':'#4b5563' };
 const SEV_COLOR  = { 'None':'#27944f','Low':'#52c274','Moderate':'#c9912b','High':'#e06c1a','Severe':'#c0392b' };
 
 let map, layers = { munis: null, benes: null, tech: null, pest: null };
@@ -284,7 +284,7 @@ function renderTables() {
     <tr>
       <td><strong>${m.municipality}</strong></td>
       <td>${m.province}</td>
-      <td><span class="badge ${m.crvaRisk==='Very High'?'red':m.crvaRisk==='High'?'amber':'gray'}">${m.crvaRisk}</span></td>
+      <td><span class="badge ${m.crvaRisk==='Very High'?'red':m.crvaRisk==='High'?'amber':m.crvaRisk==='Very Low'?'green':'gray'}">${m.crvaRisk}</span></td>
       <td>${benes.filter(b=>b.municipality===m.municipality).length}</td>
     </tr>`).join('');
 

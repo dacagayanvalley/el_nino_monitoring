@@ -181,6 +181,43 @@ function renderAll() {
       </div>
     </div>
 
+    <!-- Financial Analysis -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Financial Analysis</div>
+      <div class="kpi-grid cols-4" style="margin-bottom:14px">
+        <div class="kpi-tile">
+          <div class="kpi-label">Program Budget</div>
+          <div class="kpi-value" style="font-size:1.2rem">${fmt.money(s.budgetTotal)}</div>
+          <div class="kpi-sub">${s.financeRecordsCount} funded records</div>
+        </div>
+        <div class="kpi-tile blue">
+          <div class="kpi-label">Obligated</div>
+          <div class="kpi-value" style="font-size:1.2rem">${fmt.money(s.obligatedTotal)}</div>
+          <div class="kpi-sub">${s.obligationRate}% of budget</div>
+        </div>
+        <div class="kpi-tile green">
+          <div class="kpi-label">Disbursed</div>
+          <div class="kpi-value" style="font-size:1.2rem">${fmt.money(s.disbursedTotal)}</div>
+          <div class="kpi-sub">${s.disbursementRate}% of obligated</div>
+        </div>
+        <div class="kpi-tile amber">
+          <div class="kpi-label">Undisbursed Obligations</div>
+          <div class="kpi-value" style="font-size:1.2rem">${fmt.money(Math.max(s.obligatedTotal-s.disbursedTotal,0))}</div>
+          <div class="kpi-sub">remaining for payment</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Obligation Rate</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(s.obligationRate)}" style="width:${Math.min(s.obligationRate,100)}%"></div></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Disbursement Rate</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(s.disbursementRate)}" style="width:${Math.min(s.disbursementRate,100)}%"></div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Charts + Table Row ── -->
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">

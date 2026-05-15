@@ -357,6 +357,12 @@ const DB = {
 
     const womenCount    = benes.filter(b => b.sex === 'Female').length;
     const smallholdersCount = benes.filter(b => b.farmSize <= 0.5).length;
+    const financeRows = [...dists, ...mangos, ...techs, ...trials, ...bioferts].filter(r =>
+      r.budgetAmount || r.obligatedAmount || r.disbursedAmount
+    );
+    const budgetTotal = financeRows.reduce((s,r) => s + (+r.budgetAmount || 0), 0);
+    const obligatedTotal = financeRows.reduce((s,r) => s + (+r.obligatedAmount || 0), 0);
+    const disbursedTotal = financeRows.reduce((s,r) => s + (+r.disbursedAmount || 0), 0);
 
     return {
       munisValidated: munis.filter(m=>m.confirmed).length,
@@ -380,6 +386,12 @@ const DB = {
       womenPct: benes.length > 0 ? Math.round(womenCount/benes.length*100) : 0,
       smallholdersCount,
       smallholdersPct: benes.length > 0 ? Math.round(smallholdersCount/benes.length*100) : 0,
+      budgetTotal: +budgetTotal.toFixed(2),
+      obligatedTotal: +obligatedTotal.toFixed(2),
+      disbursedTotal: +disbursedTotal.toFixed(2),
+      financeRecordsCount: financeRows.length,
+      obligationRate: budgetTotal > 0 ? Math.round(obligatedTotal/budgetTotal*100) : 0,
+      disbursementRate: obligatedTotal > 0 ? Math.round(disbursedTotal/obligatedTotal*100) : 0,
     };
   }
 };

@@ -53,6 +53,12 @@
         <div class="form-group"><label class="form-label">GPS / Distribution Site</label><input id="d-gps" placeholder="lat,lng"></div>
         <div class="form-group"><label class="form-label">Photo Taken?</label><select id="d-photo"><option>No</option><option>Yes</option></select></div>
       </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Financial Details</div>
+      <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">Budget Amount</label><input id="d-budget" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Obligated Amount</label><input id="d-obligated" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Disbursed Amount</label><input id="d-disbursed" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
       <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Crop Establishment Monitoring</div>
       <div class="form-grid cols-3">
         <div class="form-group"><label class="form-label">Planting Date</label><input id="d-planting-date" type="date"></div>
@@ -89,6 +95,8 @@ function render() {
   const bios  = byType('Biofertilizer').length;
   const bcas  = byType('BCA').length;
   const ferts = byType('Inorganic Fertilizer').length;
+  const obligated = all.reduce((s,d)=>s+(+d.obligatedAmount||0),0);
+  const disbursed = all.reduce((s,d)=>s+(+d.disbursedAmount||0),0);
 
   if (filterType)     dists = dists.filter(d=>d.inputType===filterType);
   if (filterProvince) dists = dists.filter(d=>d.province===filterProvince);
@@ -109,7 +117,7 @@ function render() {
       <div class="kpi-tile"><div class="kpi-label">Seeds / Planting Mat</div><div class="kpi-value">${seeds}</div><div class="kpi-sub">distribution events</div></div>
       <div class="kpi-tile"><div class="kpi-label">Biofertilizer</div><div class="kpi-value">${bios}</div></div>
       <div class="kpi-tile amber"><div class="kpi-label">BCA</div><div class="kpi-value">${bcas}</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Filtered Records</div><div class="kpi-value">${dists.length}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Disbursed</div><div class="kpi-value" style="font-size:1.15rem">${fmt.money(disbursed)}</div><div class="kpi-sub">${fmt.money(obligated)} obligated</div></div>
     </div>
 
     <div class="card">
@@ -131,9 +139,9 @@ function render() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Province</th><th>Qty</th><th>Focal Person</th><th>Status</th><th>Establishment</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Province</th><th>Qty</th><th>Obligated</th><th>Disbursed</th><th>Status</th><th>Establishment</th><th>Actions</th></tr></thead>
           <tbody>
-            ${dists.length===0?'<tr><td colspan="11" style="text-align:center;color:var(--gray-400)">No records</td></tr>':
+            ${dists.length===0?'<tr><td colspan="12" style="text-align:center;color:var(--gray-400)">No records</td></tr>':
               dists.map(d=>`<tr>
                 <td>${fmt.date(d.distributionDate)}</td>
                 <td><span class="badge ${d.inputType==='BCA'?'blue':d.inputType==='Biofertilizer'?'green':'amber'}">${d.inputType}</span></td>
@@ -142,7 +150,8 @@ function render() {
                 <td>${d.municipality}</td>
                 <td>${d.province}</td>
                 <td style="font-family:var(--font-mono)">${d.quantity} ${d.unit}</td>
-                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':(d.focalPerson||'—')}</td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(d.obligatedAmount)}</td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(d.disbursedAmount)}</td>
                 <td>${fmt.statusBadge(d.status)}</td>
                 <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Pending</span>'}</td>
                 <td style="white-space:nowrap">
@@ -172,7 +181,7 @@ function openDistModal() {
   document.getElementById('d-photo').value='No';
   document.getElementById('d-signature').value='No';
   document.getElementById('d-qty').value='5';
-  ['d-planting-date','d-area-planted','d-stand','d-plot-ref','d-remarks'].forEach(id=>document.getElementById(id).value='');
+  ['d-planting-date','d-area-planted','d-stand','d-plot-ref','d-remarks','d-budget','d-obligated','d-disbursed'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('d-biofert-applied').value='No';
   document.getElementById('d-bca-applied').value='No';
   document.getElementById('d-date').value=new Date().toISOString().split('T')[0];
@@ -203,6 +212,9 @@ function editDist(id) {
   document.getElementById('d-status').value=d.status;
   document.getElementById('d-gps').value=d.gps||'';
   document.getElementById('d-photo').value=d.photoTaken||'No';
+  document.getElementById('d-budget').value=d.budgetAmount||'';
+  document.getElementById('d-obligated').value=d.obligatedAmount||'';
+  document.getElementById('d-disbursed').value=d.disbursedAmount||'';
   document.getElementById('d-planting-date').value=d.plantingDate||'';
   document.getElementById('d-area-planted').value=d.areaPlanted||'';
   document.getElementById('d-stand').value=d.standPercent||'';
@@ -239,6 +251,9 @@ function saveDist() {
     status:document.getElementById('d-status').value,
     gps:document.getElementById('d-gps').value.trim(),
     photoTaken:document.getElementById('d-photo').value,
+    budgetAmount:+document.getElementById('d-budget').value||0,
+    obligatedAmount:+document.getElementById('d-obligated').value||0,
+    disbursedAmount:+document.getElementById('d-disbursed').value||0,
     plantingDate:document.getElementById('d-planting-date').value,
     areaPlanted:+document.getElementById('d-area-planted').value||null,
     standPercent:+document.getElementById('d-stand').value||null,

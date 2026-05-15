@@ -41,6 +41,9 @@
           <select id="bf-applied"><option value="false">Not yet</option><option value="true">Yes</option></select></div>
         <div class="form-group"><label class="form-label">Date Applied (if applicable)</label><input id="bf-applydate" type="date"></div>
         <div class="form-group"><label class="form-label">Area Applied (ha)</label><input id="bf-area" type="number" step="0.01" value="0"></div>
+        <div class="form-group"><label class="form-label">Budget Amount</label><input id="bf-budget" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Obligated Amount</label><input id="bf-obligated" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Disbursed Amount</label><input id="bf-disbursed" type="number" min="0" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="form-group" style="margin-top:8px"><label class="form-label">Crop Response Observed</label>
         <textarea id="bf-response" placeholder="Notes on crop response after application"></textarea></div>
@@ -75,6 +78,8 @@ function render() {
   const bcaRate    = bcaList.length>0 ? Math.round(bcaApplied/bcaList.length*100) : 0;
 
   const totalAreaBio = bioferts.filter(b=>b.applied).reduce((s,b)=>s+(b.areaApplied||0),0);
+  const so3Obligated = bioferts.reduce((s,b)=>s+(+b.obligatedAmount||0),0);
+  const so3Disbursed = bioferts.reduce((s,b)=>s+(+b.disbursedAmount||0),0);
 
   const highPest = pests.filter(p=>p.severity==='High'||p.severity==='Severe');
   const pestMunis= [...new Set(pests.map(p=>p.municipality))];
@@ -94,7 +99,7 @@ function render() {
         <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(bioRate)}" style="width:${bioRate}%"></div></div></div></div>
       <div class="kpi-tile ${rateColor(bcaRate)}"><div class="kpi-label">BCA Adoption</div><div class="kpi-value">${bcaRate}%</div>
         <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(bcaRate)}" style="width:${bcaRate}%"></div></div></div></div>
-      <div class="kpi-tile"><div class="kpi-label">Area Applied</div><div class="kpi-value">${totalAreaBio.toFixed(2)}</div><div class="kpi-sub">hectares with biofert/BCA</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Disbursed</div><div class="kpi-value" style="font-size:1.15rem">${fmt.money(so3Disbursed)}</div><div class="kpi-sub">${fmt.money(so3Obligated)} obligated</div></div>
     </div>
 
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
@@ -146,7 +151,7 @@ function render() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Qty</th><th>Dist. Date</th><th>Applied?</th><th>Area Applied</th><th>Crop Response</th><th>Pest Status</th></tr></thead>
+          <thead><tr><th>Type</th><th>Product</th><th>Beneficiary</th><th>Municipality</th><th>Qty</th><th>Dist. Date</th><th>Applied?</th><th>Obligated</th><th>Disbursed</th><th>Pest Status</th></tr></thead>
           <tbody>
             ${bioferts.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records yet</td></tr>':
               bioferts.map(b=>`<tr>
@@ -157,8 +162,8 @@ function render() {
                 <td>${b.qty} ${b.unit}</td>
                 <td>${fmt.date(b.distDate)}</td>
                 <td>${b.applied?`<span class="badge green">Applied ${fmt.date(b.applyDate)}</span>`:'<span class="badge amber">Not yet</span>'}</td>
-                <td>${b.areaApplied?b.areaApplied+' ha':'—'}</td>
-                <td style="font-size:.76rem;max-width:180px">${b.cropResponse||'—'}</td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(b.obligatedAmount)}</td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(b.disbursedAmount)}</td>
                 <td style="font-size:.76rem">${b.pestStatus||'—'}</td>
               </tr>`).join('')}
           </tbody>
@@ -213,6 +218,9 @@ function saveBiofert() {
     applied: document.getElementById('bf-applied').value === 'true',
     applyDate: document.getElementById('bf-applydate').value,
     areaApplied: +document.getElementById('bf-area').value,
+    budgetAmount: +document.getElementById('bf-budget').value || 0,
+    obligatedAmount: +document.getElementById('bf-obligated').value || 0,
+    disbursedAmount: +document.getElementById('bf-disbursed').value || 0,
     cropResponse: document.getElementById('bf-response').value.trim(),
     pestStatus: document.getElementById('bf-pest').value.trim(),
   };

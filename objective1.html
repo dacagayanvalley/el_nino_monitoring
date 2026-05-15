@@ -41,6 +41,9 @@
         <div class="form-group"><label class="form-label">Date of Induction</label><input id="mg-date" type="date"></div>
         <div class="form-group"><label class="form-label">45-Day Flowering % (fill later)</label><input id="mg-d45" type="number" min="0" max="100" value="0"></div>
         <div class="form-group"><label class="form-label">90-Day Fruit Set % (fill later)</label><input id="mg-d90" type="number" min="0" max="100" value="0"></div>
+        <div class="form-group"><label class="form-label">Budget Amount</label><input id="mg-budget" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Obligated Amount</label><input id="mg-obligated" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Disbursed Amount</label><input id="mg-disbursed" type="number" min="0" step="0.01" placeholder="0.00"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -71,6 +74,8 @@ function render() {
   const poor = dists.filter(d=>d.establishment==='Poor').length;
   const estRate = dists.filter(d=>d.establishment).length>0
     ? Math.round(good/dists.filter(d=>d.establishment).length*100) : 0;
+  const so1Obligated = [...dists, ...mangos].reduce((s,r)=>s+(+r.obligatedAmount||0),0);
+  const so1Disbursed = [...dists, ...mangos].reduce((s,r)=>s+(+r.disbursedAmount||0),0);
 
   const mangoCrops = ['Mungbean','Peanut','Watermelon','Onion','Ube'];
   const cropCounts = mangoCrops.map(c => dists.filter(d=>(d.product||'').toLowerCase().includes(c.toLowerCase())).length);
@@ -91,6 +96,10 @@ function render() {
       <div class="kpi-tile ${rateColor(estRate)}"><div class="kpi-label">Establishment Rate</div><div class="kpi-value">${estRate}%</div>
         <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(estRate)}" style="width:${estRate}%"></div></div></div></div>
       <div class="kpi-tile amber"><div class="kpi-label">Mango Trees Treated</div><div class="kpi-value">${mangos.reduce((s,m)=>s+m.treesTreated,0)}</div><div class="kpi-sub">${mangos.length} induction records</div></div>
+    </div>
+    <div class="kpi-grid cols-2" style="margin-bottom:16px">
+      <div class="kpi-tile blue"><div class="kpi-label">SO1 Obligated</div><div class="kpi-value" style="font-size:1.25rem">${fmt.money(so1Obligated)}</div></div>
+      <div class="kpi-tile green"><div class="kpi-label">SO1 Disbursed</div><div class="kpi-value" style="font-size:1.25rem">${fmt.money(so1Disbursed)}</div></div>
     </div>
 
     <!-- Establishment breakdown -->
@@ -150,7 +159,7 @@ function render() {
       ${mangos.length===0?'<div class="empty-state"><p>No mango induction records yet. Add records to track flowering progress.</p></div>':
       `<div class="table-wrap">
         <table>
-          <thead><tr><th>Municipality</th><th>Province</th><th>Farmer/FCA</th><th>Age Class</th><th>Assessed</th><th>Ready</th><th>Treated</th><th>Inducer</th><th>Date</th><th>45-Day Flower%</th><th>90-Day Fruit%</th></tr></thead>
+          <thead><tr><th>Municipality</th><th>Province</th><th>Farmer/FCA</th><th>Age Class</th><th>Assessed</th><th>Ready</th><th>Treated</th><th>Inducer</th><th>Date</th><th>Obligated</th><th>Disbursed</th><th>45-Day Flower%</th><th>90-Day Fruit%</th></tr></thead>
           <tbody>
             ${mangos.map(m=>`<tr>
               <td>${m.municipality}</td><td>${m.province}</td>
@@ -161,6 +170,8 @@ function render() {
               <td><strong>${m.treesTreated}</strong></td>
               <td style="font-size:.74rem">${m.inducerUsed}</td>
               <td>${fmt.date(m.inductionDate)}</td>
+              <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(m.obligatedAmount)}</td>
+              <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(m.disbursedAmount)}</td>
               <td>${m.day45Flowering>0?`<span class="badge ${m.day45Flowering>=70?'green':'amber'}">${m.day45Flowering}%</span>`:'<span class="badge gray">Pending</span>'}</td>
               <td>${m.day90FruitSet>0?`<span class="badge green">${m.day90FruitSet}%</span>`:'<span class="badge gray">Pending</span>'}</td>
             </tr>`).join('')}
@@ -193,6 +204,9 @@ function saveMango() {
     inductionDate: document.getElementById('mg-date').value,
     day45Flowering: +document.getElementById('mg-d45').value,
     day90FruitSet: +document.getElementById('mg-d90').value,
+    budgetAmount: +document.getElementById('mg-budget').value || 0,
+    obligatedAmount: +document.getElementById('mg-obligated').value || 0,
+    disbursedAmount: +document.getElementById('mg-disbursed').value || 0,
     status: 'Treated',
   };
   if (!record.municipality || !record.farmer) { toast('Municipality and Farmer name are required','error'); return; }
