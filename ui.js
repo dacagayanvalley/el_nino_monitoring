@@ -153,7 +153,6 @@ function buildSidebar(activePage) {
           <option value="public" ${AccessPolicy.currentRole()==='public'?'selected':''}>Public</option>
         </select>
       </label>
-      <button class="btn btn-secondary btn-sm sidebar-btn" onclick="openStorageSettings()">${ICONS.cloud} Google Sheet</button>
       <span>DA-RFO2 | PMED</span>
       <span>v1.0 — May 2026</span>
       <span style="margin-top:6px">
@@ -173,7 +172,6 @@ function updateTopbarUtilities() {
   tools.className = 'topbar-tools';
   tools.innerHTML = `
     <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileNav()" title="Menu">${ICONS.menu}</button>
-    <button class="btn btn-secondary btn-sm" data-access="write" onclick="pushDatabaseNow({closeSettings:false})" title="Push table edits to Google Sheet">${ICONS.cloud}<span>Push edits</span></button>
     <span class="topbar-badge role-badge">${AccessPolicy.label()}</span>
     <button class="btn btn-secondary btn-sm theme-toggle" onclick="Theme.toggle()" title="Toggle dark mode">${Theme.current()==='dark'?ICONS.sun:ICONS.moon}</button>
   `;

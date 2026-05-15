@@ -2,6 +2,12 @@
 //  DA-RFO2 Monitoring System — Data Layer (localStorage-based)
 // ═══════════════════════════════════════════════════════════════════
 
+const EMBEDDED_GOOGLE_SHEET_CONFIG = {
+  appsScriptEndpoint: 'https://script.google.com/macros/s/AKfycbxjAEu4CsmkwptWb_ZIlZOwvrLdvsLd4LiPJsFLm_s-mvI5Lcz23XD7fMHAxIZUmE9pFg/exec',
+  googleSheetUrl: 'https://docs.google.com/spreadsheets/d/1y0YQTyqSJJK-rG-CYLVPiGxGgvwHuXrBm5wpJI2L6hU/edit?gid=0#gid=0',
+  googleDriveFolderUrl: 'https://drive.google.com/drive/folders/1SD0lmSk2S8YJEyBc4z27eZIU1J0Y5IGU?role=writer',
+};
+
 const DB = {
   // ── Keys ──────────────────────────────────────────────────────────
   KEYS: {
@@ -29,9 +35,29 @@ const DB = {
     syncEnabled: false,
   },
 
+  embeddedSettings() {
+    const cfg = window.ICAMMS_GOOGLE_SHEET_CONFIG || EMBEDDED_GOOGLE_SHEET_CONFIG;
+    const settings = {};
+    if (cfg.appsScriptEndpoint) settings.appsScriptEndpoint = cfg.appsScriptEndpoint;
+    if (cfg.googleSheetUrl) settings.googleSheetUrl = cfg.googleSheetUrl;
+    if (cfg.googleDriveFolderUrl) settings.googleDriveFolderUrl = cfg.googleDriveFolderUrl;
+    if (settings.appsScriptEndpoint) settings.syncEnabled = true;
+    return settings;
+  },
+
   settings() {
-    try { return { ...this.defaultSettings, ...JSON.parse(localStorage.getItem(this.SETTINGS_KEY) || '{}') }; }
-    catch { return { ...this.defaultSettings }; }
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.SETTINGS_KEY) || '{}');
+      const embedded = this.embeddedSettings();
+      const settings = { ...this.defaultSettings, ...saved, ...embedded };
+      if (settings.appsScriptEndpoint) settings.syncEnabled = true;
+      return settings;
+    }
+    catch {
+      const settings = { ...this.defaultSettings, ...this.embeddedSettings() };
+      if (settings.appsScriptEndpoint) settings.syncEnabled = true;
+      return settings;
+    }
   },
 
   saveSettings(patch) {
@@ -84,6 +110,7 @@ const DB = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const result = await res.json().catch(() => ({ ok: true }));
       if (result.ok === false) throw new Error(result.message || 'Sync failed');
+      if (result.sheetUrl) this.saveSettings({ googleSheetUrl: result.sheetUrl, syncEnabled: true });
       localStorage.removeItem(this.SYNC_QUEUE_KEY);
       localStorage.setItem('darfo2_last_google_sync', this.now());
       localStorage.removeItem('darfo2_last_sync_error');
