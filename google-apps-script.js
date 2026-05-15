@@ -29,8 +29,22 @@ function doPost(e) {
   }
 }
 
-function doGet() {
-  return json({ ok: true, message: 'DA-RFO2 Monitoring database endpoint is running.' });
+function doGet(e) {
+  try {
+    const params = e && e.parameter ? e.parameter : {};
+    if (params.mode === 'read') {
+      const ss = openExistingSpreadsheet(params.sheetUrl);
+      return json({
+        ok: true,
+        sheetUrl: ss.getUrl(),
+        tables: readAllTables(ss),
+        pulledAt: new Date().toISOString()
+      });
+    }
+    return json({ ok: true, message: 'DA-RFO2 Monitoring database endpoint is running.' });
+  } catch (err) {
+    return json({ ok: false, message: err.message });
+  }
 }
 
 function openOrCreateSpreadsheet(sheetUrl, folderUrl) {
@@ -46,6 +60,12 @@ function openOrCreateSpreadsheet(sheetUrl, folderUrl) {
     DriveApp.getRootFolder().removeFile(file);
   }
   return ss;
+}
+
+function openExistingSpreadsheet(sheetUrl) {
+  const id = extractId(sheetUrl);
+  if (!id) throw new Error('Paste the Google Sheet URL before pulling records.');
+  return SpreadsheetApp.openById(id);
 }
 
 function replaceTable(ss, tableName, records) {
@@ -92,6 +112,14 @@ function readTable(sheet) {
     return record;
   });
   return { headers: headers, records: records };
+}
+
+function readAllTables(ss) {
+  const tables = {};
+  ss.getSheets().forEach(function(sheet) {
+    tables[sheet.getName()] = readTable(sheet).records;
+  });
+  return tables;
 }
 
 function ensureSheet(ss, tableName) {

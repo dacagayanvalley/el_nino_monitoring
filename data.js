@@ -128,6 +128,40 @@ const DB = {
   },
 
   // ── CRUD helpers ──────────────────────────────────────────────────
+  async pullFromGoogleSheet() {
+    const settings = this.settings();
+    if (!settings.appsScriptEndpoint) return { ok: false, message: 'Paste the Google Apps Script Web App URL first.' };
+    if (!settings.googleSheetUrl) return { ok: false, message: 'Paste the Google Sheet URL before pulling records.' };
+    try {
+      const url = new URL(settings.appsScriptEndpoint);
+      url.searchParams.set('mode', 'read');
+      url.searchParams.set('sheetUrl', settings.googleSheetUrl);
+      const res = await fetch(url.toString(), { method: 'GET', mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json().catch(() => ({ ok: false, message: 'Invalid response from Google Apps Script.' }));
+      if (result.ok === false) throw new Error(result.message || 'Pull failed');
+
+      const tables = result.tables || {};
+      Object.entries(this.KEYS).forEach(([name, key]) => {
+        const rows = tables[name] || tables[this.tableNameFromKey(key)] || tables[key] || [];
+        this.set(key, Array.isArray(rows) ? rows : []);
+      });
+
+      if (result.sheetUrl) this.saveSettings({ googleSheetUrl: result.sheetUrl, syncEnabled: true });
+      localStorage.removeItem(this.SYNC_QUEUE_KEY);
+      localStorage.setItem('darfo2_last_google_sync', this.now());
+      localStorage.removeItem('darfo2_last_sync_error');
+      return { ok: true, result };
+    } catch (err) {
+      localStorage.setItem('darfo2_last_sync_error', `${this.now()} ${err.message}`);
+      return { ok: false, message: err.message };
+    }
+  },
+
+  tableNameFromKey(key) {
+    return String(key || '').replace(/^darfo2_/, '').replace(/[^a-z0-9_]/gi, '_').toUpperCase();
+  },
+
   get(key) {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); }
     catch { return []; }

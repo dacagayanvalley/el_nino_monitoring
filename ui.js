@@ -173,6 +173,7 @@ function updateTopbarUtilities() {
   tools.className = 'topbar-tools';
   tools.innerHTML = `
     <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileNav()" title="Menu">${ICONS.menu}</button>
+    <button class="btn btn-secondary btn-sm" data-access="write" onclick="pushDatabaseNow({closeSettings:false})" title="Push table edits to Google Sheet">${ICONS.cloud}<span>Push edits</span></button>
     <span class="topbar-badge role-badge">${AccessPolicy.label()}</span>
     <button class="btn btn-secondary btn-sm theme-toggle" onclick="Theme.toggle()" title="Toggle dark mode">${Theme.current()==='dark'?ICONS.sun:ICONS.moon}</button>
   `;
@@ -204,10 +205,11 @@ function ensureStorageModal() {
           <label style="display:flex;gap:8px;align-items:center;font-size:.82rem"><input id="set-enabled" type="checkbox" style="width:auto" ${settings.syncEnabled?'checked':''}> Enable live Google Sheet sync</label>
         </div>
         <div class="sync-status" id="sync-status">${syncStatusText()}</div>
-        <div style="font-size:.74rem;color:var(--gray-500);margin-top:10px">Deploy the included google-apps-script.js in Google Apps Script, share the Drive folder with the team, then paste the Web App URL here.</div>
+        <div style="font-size:.74rem;color:var(--gray-500);margin-top:10px">Deploy the included google-apps-script.js in Google Apps Script, share the Drive folder with the team, then paste the Web App URL here. Pull replaces the app cache with the current Google Sheet rows.</div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('storage-modal')">Cancel</button>
+        <button class="btn btn-secondary" onclick="pullDatabaseNow()">Pull from Google Sheet</button>
         <button class="btn btn-secondary" onclick="pushDatabaseNow()">Push All Tables</button>
         <button class="btn btn-primary" onclick="saveStorageSettings()">Save Settings</button>
       </div>
@@ -230,22 +232,132 @@ function openStorageSettings() {
   openModal('storage-modal');
 }
 
-function saveStorageSettings() {
+function saveStorageSettings(options = {}) {
+  const endpoint = document.getElementById('set-endpoint');
+  const folder = document.getElementById('set-folder');
+  const sheet = document.getElementById('set-sheet');
+  const enabled = document.getElementById('set-enabled');
+  if (!endpoint || !folder || !sheet || !enabled) return DB.settings();
   DB.saveSettings({
-    appsScriptEndpoint: document.getElementById('set-endpoint').value.trim(),
-    googleDriveFolderUrl: document.getElementById('set-folder').value.trim(),
-    googleSheetUrl: document.getElementById('set-sheet').value.trim(),
-    syncEnabled: document.getElementById('set-enabled').checked,
+    appsScriptEndpoint: endpoint.value.trim(),
+    googleDriveFolderUrl: folder.value.trim(),
+    googleSheetUrl: sheet.value.trim(),
+    syncEnabled: enabled.checked,
   });
   toast('Google Sheet storage settings saved');
-  closeModal('storage-modal');
+  if (options.close !== false) closeModal('storage-modal');
 }
 
-async function pushDatabaseNow() {
-  saveStorageSettings();
+async function pushDatabaseNow(options = {}) {
+  const closeSettings = options.closeSettings !== false;
+  if (document.getElementById('set-endpoint')) {
+    saveStorageSettings({ close: closeSettings });
+  }
   const result = await DB.pushAllToGoogleSheet();
-  if (result.ok) toast('Database pushed to Google Sheet');
-  else toast(result.message || 'Google Sheet push failed', 'error');
+  if (result.ok) {
+    toast('Database pushed to Google Sheet');
+    const syncStatus = document.getElementById('sync-status');
+    if (syncStatus) syncStatus.textContent = syncStatusText();
+  } else {
+    toast(result.message || 'Google Sheet push failed', 'error');
+  }
+}
+
+async function pullDatabaseNow() {
+  saveStorageSettings();
+  const pending = DB.getSyncQueue().length;
+  if (pending && !confirm(`${pending} local sync event(s) are still pending. Pulling will replace the local app cache with Google Sheet rows. Continue?`)) return;
+  const result = await DB.pullFromGoogleSheet();
+  if (result.ok) {
+    toast('Database pulled from Google Sheet');
+    document.getElementById('sync-status') && (document.getElementById('sync-status').textContent = syncStatusText());
+    refreshCurrentView();
+  } else {
+    toast(result.message || 'Google Sheet pull failed', 'error');
+  }
+}
+
+async function autoPullDatabaseOnLoad() {
+  const settings = DB.settings();
+  if (!settings.syncEnabled || !settings.appsScriptEndpoint || !settings.googleSheetUrl) return;
+
+  const pending = DB.getSyncQueue().length;
+  if (pending) {
+    const pushed = await DB.syncQueue();
+    if (!pushed.ok) return;
+  }
+
+  const result = await DB.pullFromGoogleSheet();
+  if (!result.ok) return;
+  refreshCurrentView();
+}
+
+function refreshCurrentView() {
+  if (typeof renderAll === 'function') renderAll();
+  else if (typeof render === 'function') render();
+  enhanceSortableTables();
+}
+
+function enhanceSortableTables(root = document) {
+  root.querySelectorAll('table').forEach(table => {
+    if (table.dataset.sortableReady === 'true') return;
+    const headerRow = table.tHead?.rows?.[0];
+    const body = table.tBodies?.[0];
+    if (!headerRow || !body || !body.rows.length) return;
+
+    table.dataset.sortableReady = 'true';
+    Array.from(headerRow.cells).forEach((th, index) => {
+      if (th.colSpan > 1) return;
+      th.classList.add('sortable-th');
+      th.tabIndex = 0;
+      th.setAttribute('role', 'button');
+      th.setAttribute('aria-sort', 'none');
+      th.title = 'Sort column';
+      const sort = () => sortTableByColumn(table, index, th);
+      th.addEventListener('click', sort);
+      th.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          sort();
+        }
+      });
+    });
+  });
+}
+
+function sortTableByColumn(table, index, activeHeader) {
+  const body = table.tBodies?.[0];
+  if (!body) return;
+  const current = activeHeader.dataset.sortDirection === 'asc' ? 'desc' : 'asc';
+  const rows = Array.from(body.rows).filter(row => row.cells.length > 1);
+
+  table.querySelectorAll('th').forEach(th => {
+    th.dataset.sortDirection = '';
+    th.setAttribute('aria-sort', 'none');
+  });
+
+  rows.sort((a, b) => compareTableCells(a.cells[index], b.cells[index], current));
+  rows.forEach(row => body.appendChild(row));
+  activeHeader.dataset.sortDirection = current;
+  activeHeader.setAttribute('aria-sort', current === 'asc' ? 'ascending' : 'descending');
+}
+
+function compareTableCells(aCell, bCell, direction) {
+  const a = parseSortableValue(aCell?.innerText || '');
+  const b = parseSortableValue(bCell?.innerText || '');
+  const result = a.type === 'number' && b.type === 'number'
+    ? a.value - b.value
+    : String(a.value).localeCompare(String(b.value), undefined, { numeric: true, sensitivity: 'base' });
+  return direction === 'asc' ? result : -result;
+}
+
+function parseSortableValue(text) {
+  const clean = String(text).replace(/\s+/g, ' ').trim();
+  const numeric = Number(clean.replace(/[,%₱,]/g, '').replace(/^—$/, ''));
+  if (clean && Number.isFinite(numeric)) return { type: 'number', value: numeric };
+  const date = Date.parse(clean);
+  if (clean && Number.isFinite(date)) return { type: 'number', value: date };
+  return { type: 'text', value: clean };
 }
 
 function toast(msg, type='success') {
@@ -383,8 +495,13 @@ function renderDonut(containerId, value, total, color='var(--green-500)', label=
 document.addEventListener('DOMContentLoaded', () => {
   Theme.apply();
   AccessPolicy.apply();
+  enhanceSortableTables();
+  autoPullDatabaseOnLoad();
   const body = document.body;
   if (!body) return;
-  const observer = new MutationObserver(() => AccessPolicy.apply());
+  const observer = new MutationObserver(() => {
+    AccessPolicy.apply();
+    enhanceSortableTables();
+  });
   observer.observe(body, { childList: true, subtree: true });
 });
