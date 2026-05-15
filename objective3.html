@@ -141,7 +141,7 @@ function render() {
         <div class="section-title">Biofertilizer, Inorganic &amp; BCA Records <small>${bioferts.length} records</small></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.BIOFERT),'so3_biofert_bca.csv')">${ICONS.download} Export</button>
-          <button class="btn btn-primary btn-sm" onclick="openModal('biofert-modal')">${ICONS.plus} Add Record</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openModal('biofert-modal')">${ICONS.plus} Add Record</button>
         </div>
       </div>
       <div class="table-wrap">

@@ -23,7 +23,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <span id="modal-title">Log New Issue</span>
-      <button class="modal-close" onclick="closeModal('issue-modal')">×</button>
+      <button class="modal-close" onclick="closeModal('issue-modal')">x</button>
     </div>
     <div class="modal-body">
       <div class="form-grid cols-2">
@@ -174,7 +174,7 @@ function render() {
             ${cats.map(c=>`<option ${filterCat===c?'selected':''}>${c}</option>`).join('')}
           </select>
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.ISSUES),'issues.csv')">${ICONS.download} Export</button>
-          <button class="btn btn-primary btn-sm" onclick="openAddIssue()">${ICONS.plus} Log Issue</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openAddIssue()">${ICONS.plus} Log Issue</button>
         </div>
       </div>
 
@@ -203,8 +203,8 @@ function render() {
             <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
               ${fmt.statusBadge(iss.status)}
               <div style="display:flex;gap:4px">
-                <button class="btn btn-secondary btn-sm" onclick="editIssue('${iss.id}')">${ICONS.edit}</button>
-                <button class="btn btn-danger btn-sm" onclick="delIssue('${iss.id}')">${ICONS.trash}</button>
+                <button class="btn btn-secondary btn-sm" data-access="write" onclick="editIssue('${iss.id}')">${ICONS.edit}</button>
+                <button class="btn btn-danger btn-sm" data-access="admin" onclick="delIssue('${iss.id}')">${ICONS.trash}</button>
               </div>
             </div>
           </div>

@@ -19,7 +19,7 @@
 <div id="toast-container"></div>
 <div class="modal-overlay hidden" id="fr-modal">
   <div class="modal-box" style="max-width:780px">
-    <div class="modal-header"><span id="fr-modal-title">Submit Weekly Field Report</span><button class="modal-close" onclick="closeModal('fr-modal')">×</button></div>
+    <div class="modal-header"><span id="fr-modal-title">Submit Weekly Field Report</span><button class="modal-close" onclick="closeModal('fr-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-3">
         <div class="form-group"><label class="form-label">AEW Name<span class="req">*</span></label><input id="fr-aew"></div>
@@ -77,7 +77,7 @@ function render() {
         <div class="section-title">Weekly Field Reports <small>${reports.length} reports</small></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.FIELD_REPORTS),'fieldreports.csv')">${ICONS.download} CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openFRModal()">${ICONS.plus} Submit Report</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openFRModal()">${ICONS.plus} Submit Report</button>
         </div>
       </div>
       ${reports.length===0?'<div class="empty-state"><p>No reports yet. AEWs submit weekly by Friday 5PM.</p></div>':
@@ -90,8 +90,8 @@ function render() {
               </div>
               <div style="display:flex;gap:6px;align-items:center">
                 ${fmt.statusBadge(r.status)}
-                <button class="btn btn-secondary btn-sm" onclick="editReport('${r.id}')">${ICONS.edit}</button>
-                <button class="btn btn-danger btn-sm" onclick="delReport('${r.id}')">${ICONS.trash}</button>
+                <button class="btn btn-secondary btn-sm" data-access="write" onclick="editReport('${r.id}')">${ICONS.edit}</button>
+                <button class="btn btn-danger btn-sm" data-access="admin" onclick="delReport('${r.id}')">${ICONS.trash}</button>
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">

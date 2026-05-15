@@ -19,7 +19,7 @@
 <div id="toast-container"></div>
 <div class="modal-overlay hidden" id="tech-modal">
   <div class="modal-box">
-    <div class="modal-header"><span id="modal-title">Add Technology Record</span><button class="modal-close" onclick="closeModal('tech-modal')">×</button></div>
+    <div class="modal-header"><span id="modal-title">Add Technology Record</span><button class="modal-close" onclick="closeModal('tech-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">Technology Type<span class="req">*</span></label>
@@ -95,7 +95,7 @@ function render() {
         <div class="section-title">Technology Units <small>${techs.length} records</small></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.TECH),'technology.csv')">${ICONS.download} CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openAddTech()">${ICONS.plus} Add Unit</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openAddTech()">${ICONS.plus} Add Unit</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -113,8 +113,8 @@ function render() {
                 <td style="font-size:.76rem;color:var(--red-500)">${t.issue||'—'}</td>
                 <td style="font-size:.76rem">${fmt.date(t.lastCheck)}</td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="editTech('${t.id}')">${ICONS.edit}</button>
-                  <button class="btn btn-danger btn-sm" onclick="delTech('${t.id}')">${ICONS.trash}</button>
+                  <button class="btn btn-secondary btn-sm" data-access="write" onclick="editTech('${t.id}')">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" data-access="admin" onclick="delTech('${t.id}')">${ICONS.trash}</button>
                 </td>
               </tr>`).join('')}
           </tbody>

@@ -19,7 +19,7 @@
 <div id="toast-container"></div>
 <div class="modal-overlay hidden" id="dist-modal">
   <div class="modal-box">
-    <div class="modal-header"><span id="modal-title">Record Distribution</span><button class="modal-close" onclick="closeModal('dist-modal')">×</button></div>
+    <div class="modal-header"><span id="modal-title">Record Distribution</span><button class="modal-close" onclick="closeModal('dist-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">Input Type<span class="req">*</span></label>
@@ -108,7 +108,7 @@ function render() {
             ${provinces.map(p=>`<option ${filterProvince===p?'selected':''}>${p}</option>`).join('')}
           </select>
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.DISTRIBUTIONS),'distributions.csv')">${ICONS.download} CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openDistModal()">${ICONS.plus} Add</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openDistModal()">${ICONS.plus} Add</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -128,8 +128,8 @@ function render() {
                 <td>${fmt.statusBadge(d.status)}</td>
                 <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Pending</span>'}</td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="editDist('${d.id}')">${ICONS.edit}</button>
-                  <button class="btn btn-danger btn-sm" onclick="delDist('${d.id}')">${ICONS.trash}</button>
+                  <button class="btn btn-secondary btn-sm" data-access="write" onclick="editDist('${d.id}')">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" data-access="admin" onclick="delDist('${d.id}')">${ICONS.trash}</button>
                 </td>
               </tr>`).join('')}
           </tbody>

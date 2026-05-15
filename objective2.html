@@ -120,7 +120,7 @@ function render() {
     <div class="card" style="margin-bottom:16px">
       <div class="section-header">
         <div class="section-title">Technology Installation & Functionality Records <small>${techs.length} units</small></div>
-        <a href="technology.html" class="btn btn-primary btn-sm">${ICONS.plus} Add / Update Unit</a>
+        <a href="technology.html" class="btn btn-primary btn-sm" data-access="write">${ICONS.plus} Add / Update Unit</a>
       </div>
       <div class="table-wrap">
         <table>
@@ -146,7 +146,7 @@ function render() {
     <div class="card">
       <div class="section-header">
         <div class="section-title">Superimposed Trial & POT Records <small>${trials.length} trials</small></div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('trial-modal')">${ICONS.plus} Add Trial</button>
+        <button class="btn btn-primary btn-sm" data-access="write" onclick="openModal('trial-modal')">${ICONS.plus} Add Trial</button>
       </div>
       ${trials.length===0?'<div class="empty-state"><p>No trial records yet.</p></div>':
       `<div class="table-wrap">

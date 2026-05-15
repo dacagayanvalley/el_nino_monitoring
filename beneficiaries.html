@@ -20,10 +20,10 @@
 <!-- Add/Edit modal -->
 <div class="modal-overlay hidden" id="bene-modal">
   <div class="modal-box" style="max-width:780px">
-    <div class="modal-header"><span id="modal-title">Add Beneficiary</span><button class="modal-close" onclick="closeModal('bene-modal')">×</button></div>
+    <div class="modal-header"><span id="modal-title">Add Beneficiary</span><button class="modal-close" onclick="closeModal('bene-modal')">x</button></div>
     <div class="modal-body">
       <div style="background:var(--green-50);padding:8px 12px;border-radius:4px;font-size:.78rem;color:var(--green-800);margin-bottom:14px">
-        ⚠ Priority: Farmers cultivating <strong>0.5 hectare and below</strong>. Confirm municipality is on the validated list before adding.
+        Priority: Farmers cultivating <strong>0.5 hectare and below</strong>. Confirm municipality is on the validated list before adding.
       </div>
       <div class="form-grid cols-3">
         <div class="form-group" style="grid-column:span 2"><label class="form-label">Full Name (Last, First, MI)<span class="req">*</span></label><input id="b-name"></div>
@@ -134,7 +134,7 @@ function render() {
             ${crops.map(c=>`<option ${filterCrop===c?'selected':''}>${c}</option>`).join('')}
           </select>
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.BENEFICIARIES),'beneficiaries.csv')">${ICONS.download} CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openAddModal()">${ICONS.plus} Add</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openAddModal()">${ICONS.plus} Add</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -153,8 +153,8 @@ function render() {
                 <td style="font-size:.76rem">${b.fca||'—'}</td>
                 <td style="font-size:.72rem;max-width:180px">${(b.interventions||[]).join(', ')||'—'}</td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="editBeneficiary('${b.id}')" style="margin-right:4px">${ICONS.edit}</button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteBene('${b.id}')">${ICONS.trash}</button>
+                  <button class="btn btn-secondary btn-sm" data-access="write" onclick="editBeneficiary('${b.id}')" style="margin-right:4px">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" data-access="admin" onclick="deleteBene('${b.id}')">${ICONS.trash}</button>
                 </td>
               </tr>`).join('')}
           </tbody>

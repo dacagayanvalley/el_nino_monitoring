@@ -118,7 +118,7 @@ function render() {
         <div class="section-title">Seed &amp; Planting Material Distribution Records <small>${dists.length} records</small></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.DISTRIBUTIONS).filter(d=>d.inputType==='Seed'||d.inputType==='Planting Mat'),'so1_distributions.csv')">${ICONS.download} Export</button>
-          <a href="distributions.html" class="btn btn-primary btn-sm">${ICONS.plus} Add Distribution</a>
+          <a href="distributions.html" class="btn btn-primary btn-sm" data-access="write">${ICONS.plus} Add Distribution</a>
         </div>
       </div>
       <div class="table-wrap">
@@ -145,7 +145,7 @@ function render() {
     <div class="card">
       <div class="section-header">
         <div class="section-title">Mango Flowering Induction Records <small>${mangos.length} records</small></div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('mango-modal')">${ICONS.plus} Add Record</button>
+        <button class="btn btn-primary btn-sm" data-access="write" onclick="openModal('mango-modal')">${ICONS.plus} Add Record</button>
       </div>
       ${mangos.length===0?'<div class="empty-state"><p>No mango induction records yet. Add records to track flowering progress.</p></div>':
       `<div class="table-wrap">

@@ -23,7 +23,7 @@
 <div id="toast-container"></div>
 <div class="modal-overlay hidden" id="pest-modal">
   <div class="modal-box">
-    <div class="modal-header">Submit Pest Surveillance Report <button class="modal-close" onclick="closeModal('pest-modal')">×</button></div>
+    <div class="modal-header">Submit Pest Surveillance Report <button class="modal-close" onclick="closeModal('pest-modal')">x</button></div>
     <div class="modal-body">
       <div style="background:var(--blue-100);padding:8px 12px;border-radius:4px;font-size:.78rem;color:var(--blue-500);margin-bottom:12px">
         📡 This form simulates KoboToolbox offline submission (DA DOS KOLEK design). GPS and photo fields are recorded.
@@ -105,7 +105,7 @@ function render() {
         <div class="section-title">Pest Surveillance Reports <small>${pests.length} submissions</small></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.PEST),'pest_surveillance.csv')">${ICONS.download} CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="openModal('pest-modal')">${ICONS.plus} Submit Report</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openModal('pest-modal')">${ICONS.plus} Submit Report</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -126,7 +126,7 @@ function render() {
                 <td>${fmt.statusBadge(p.cropCondition)}</td>
                 <td>${p.interventionReceived?'<span class="badge green">Yes</span>':'<span class="badge red">No</span>'}</td>
                 <td style="font-size:.72rem;font-family:var(--font-mono)">${AccessPolicy.isPublic()?'Withheld':(p.lat?`${p.lat},${p.lng}`:'—')}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="delPest('${p.id}')">${ICONS.trash}</button></td>
+                <td><button class="btn btn-danger btn-sm" data-access="admin" onclick="delPest('${p.id}')">${ICONS.trash}</button></td>
               </tr>`).join('')}
           </tbody>
         </table>

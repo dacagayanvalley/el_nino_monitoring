@@ -76,19 +76,13 @@ const AccessPolicy = {
   label() { return this.roles[this.currentRole()] || 'Executive View'; },
   apply() {
     document.body?.setAttribute('data-role', this.currentRole());
-    document.querySelectorAll('button, a').forEach(el => {
-      const text = (el.textContent || '').toLowerCase();
-      const action = (el.getAttribute('onclick') || '').toLowerCase();
-      const href = (el.getAttribute('href') || '').toLowerCase();
-      const writeIntent = /openadd|openfrmodal|opendistmodal|openmodal\('|save|edit/.test(action)
-        || /\badd\b|submit report|record distribution|log issue|save/.test(text)
-        || ['distributions.html', 'technology.html'].includes(href);
-      const deleteIntent = /delete|del|remove|trash/.test(action) || /\bdelete\b|\bremove\b/.test(text);
-      if (writeIntent || deleteIntent) {
-        const allowed = deleteIntent ? this.canAdmin() : this.canWrite();
-        el.classList.toggle('access-hidden', !allowed);
-        el.setAttribute('aria-hidden', String(!allowed));
-      }
+    document.querySelectorAll('[data-access]').forEach(el => {
+      const access = el.dataset.access;
+      const allowed = access === 'admin' ? this.canAdmin()
+        : access === 'write' ? this.canWrite()
+        : true;
+      el.classList.toggle('access-hidden', !allowed);
+      el.setAttribute('aria-hidden', String(!allowed));
     });
     document.querySelectorAll('input, select, textarea').forEach(el => {
       const inModal = !!el.closest('.modal-box');
