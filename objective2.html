@@ -199,7 +199,8 @@ function saveTrial() {
     yieldEst: 0,
   };
   if (!record.municipality) { toast('Municipality is required','error'); return; }
-  DB.add(DB.KEYS.TRIALS, record);
+  const saved = DB.add(DB.KEYS.TRIALS, record);
+  if (!saved) return;
   closeModal('trial-modal');
   toast('Trial record saved');
   render();

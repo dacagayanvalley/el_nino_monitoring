@@ -210,7 +210,8 @@ function saveMango() {
     status: 'Treated',
   };
   if (!record.municipality || !record.farmer) { toast('Municipality and Farmer name are required','error'); return; }
-  DB.add(DB.KEYS.MANGO, record);
+  const saved = DB.add(DB.KEYS.MANGO, record);
+  if (!saved) return;
   closeModal('mango-modal');
   toast('Mango induction record saved');
   render();

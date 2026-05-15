@@ -201,8 +201,9 @@ function saveMunicipality() {
     remarks: document.getElementById('m-remarks').value.trim(),
   };
   const eid = document.getElementById('m-edit-id').value;
-  if (eid) { DB.update(DB.KEYS.MUNICIPALITIES, eid, rec); toast('Municipality updated'); }
-  else { DB.add(DB.KEYS.MUNICIPALITIES, rec); toast('Municipality validated'); }
+  const saved = eid ? DB.update(DB.KEYS.MUNICIPALITIES, eid, rec) : DB.add(DB.KEYS.MUNICIPALITIES, rec);
+  if (!saved) return;
+  toast(eid ? 'Municipality updated' : 'Municipality validated');
   closeModal('muni-modal');
   render();
 }

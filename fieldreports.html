@@ -176,7 +176,9 @@ function saveReport(){
   if(!aew||!muni){toast('AEW and municipality required','error');return;}
   const rec={reportType:document.getElementById('fr-type').value,dateSubmitted:document.getElementById('fr-submitted').value,aew,province:document.getElementById('fr-province').value,municipality:muni,periodStart:document.getElementById('fr-start').value,periodEnd:document.getElementById('fr-end').value,status:document.getElementById('fr-status').value,distributionsSummary:document.getElementById('fr-dist').value.trim(),establishmentSummary:document.getElementById('fr-estab').value.trim(),pestSummary:document.getElementById('fr-pest').value.trim(),techSummary:document.getElementById('fr-tech').value.trim(),issues:document.getElementById('fr-issues').value.trim(),actions:document.getElementById('fr-actions').value.trim(),monthlyAccomplishment:document.getElementById('fr-month-accomp').value.trim(),monthlyCoverage:document.getElementById('fr-month-coverage').value.trim(),monthlyGedsi:document.getElementById('fr-month-gedsi').value.trim(),nextMonthPlans:document.getElementById('fr-month-next').value.trim(),siteVisited:document.getElementById('fr-site-visited').value,recordsMatched:document.getElementById('fr-records-match').value,beneficiaryInterviewed:document.getElementById('fr-interviewed').value,checklistFindings:document.getElementById('fr-checklist').value.trim()};
   const eid=document.getElementById('fr-edit-id').value;
-  if(eid){DB.update(DB.KEYS.FIELD_REPORTS,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.FIELD_REPORTS,rec);toast('Report submitted');}
+  const saved = eid ? DB.update(DB.KEYS.FIELD_REPORTS,eid,rec) : DB.add(DB.KEYS.FIELD_REPORTS,rec);
+  if(!saved)return;
+  toast(eid ? 'Updated' : 'Report submitted');
   closeModal('fr-modal');render();
 }
 function delReport(id){if(!confirm('Delete report?'))return;DB.remove(DB.KEYS.FIELD_REPORTS,id);render();}

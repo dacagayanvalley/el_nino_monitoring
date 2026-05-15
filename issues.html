@@ -302,8 +302,9 @@ function saveIssue() {
     resolutionNotes: document.getElementById('is-resnotes').value.trim(),
   };
   const eid = document.getElementById('is-edit-id').value;
-  if (eid) { DB.update(DB.KEYS.ISSUES, eid, rec); toast('Issue updated'); }
-  else     { DB.add(DB.KEYS.ISSUES, rec); toast('Issue logged'); }
+  const saved = eid ? DB.update(DB.KEYS.ISSUES, eid, rec) : DB.add(DB.KEYS.ISSUES, rec);
+  if (!saved) return;
+  toast(eid ? 'Issue updated' : 'Issue logged');
   closeModal('issue-modal');
   render();
 }

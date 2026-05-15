@@ -286,7 +286,10 @@ async function autoPullDatabaseOnLoad() {
   }
 
   const result = await DB.pullFromGoogleSheet();
-  if (!result.ok) return;
+  if (!result.ok) {
+    toast(result.message || 'Google Sheet pull failed', 'error');
+    return;
+  }
   refreshCurrentView();
 }
 

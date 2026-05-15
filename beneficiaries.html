@@ -263,8 +263,9 @@ function saveBeneficiary() {
     interventions,
   };
   const editId = document.getElementById('b-edit-id').value;
-  if (editId) { DB.update(DB.KEYS.BENEFICIARIES, editId, rec); toast('Beneficiary updated'); }
-  else        { DB.add(DB.KEYS.BENEFICIARIES, rec); toast('Beneficiary added'); }
+  const saved = editId ? DB.update(DB.KEYS.BENEFICIARIES, editId, rec) : DB.add(DB.KEYS.BENEFICIARIES, rec);
+  if (!saved) return;
+  toast(editId ? 'Beneficiary updated' : 'Beneficiary added');
   closeModal('bene-modal');
   render();
 }

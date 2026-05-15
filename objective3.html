@@ -225,7 +225,8 @@ function saveBiofert() {
     pestStatus: document.getElementById('bf-pest').value.trim(),
   };
   if (!r.product || !r.beneficiaryName) { toast('Product name and beneficiary are required','error'); return; }
-  DB.add(DB.KEYS.BIOFERT, r);
+  const saved = DB.add(DB.KEYS.BIOFERT, r);
+  if (!saved) return;
   closeModal('biofert-modal');
   toast('Record saved');
   render();

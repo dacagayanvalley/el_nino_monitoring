@@ -154,7 +154,7 @@ function savePest() {
   const muni=document.getElementById('ps-muni').value.trim();
   const date=document.getElementById('ps-date').value;
   if(!aew||!muni||!date){toast('AEW, municipality, and date required','error');return;}
-  DB.add(DB.KEYS.PEST, {
+  const saved = DB.add(DB.KEYS.PEST, {
     aew, province:document.getElementById('ps-province').value,
     municipality:muni, barangay:document.getElementById('ps-barangay').value.trim(),
     date, crop:document.getElementById('ps-crop').value,
@@ -172,6 +172,7 @@ function savePest() {
     lat:+document.getElementById('ps-lat').value||null,
     lng:+document.getElementById('ps-lng').value||null,
   });
+  if(!saved)return;
   closeModal('pest-modal'); toast('Pest report submitted'); render();
 }
 function delPest(id){if(!confirm('Delete?'))return;DB.remove(DB.KEYS.PEST,id);render();}

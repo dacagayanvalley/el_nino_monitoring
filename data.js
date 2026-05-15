@@ -167,12 +167,31 @@ const DB = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const result = await res.json().catch(() => ({ ok: false, message: 'Invalid response from Google Apps Script.' }));
       if (result.ok === false) throw new Error(result.message || 'Pull failed');
+      if (!result.tables || typeof result.tables !== 'object') {
+        throw new Error('The deployed Apps Script did not return Sheet tables. Redeploy the latest google-apps-script.js as a Web App.');
+      }
 
       const tables = result.tables || {};
+      const normalizedTables = Object.entries(tables).reduce((acc, [name, rows]) => {
+        acc[this.normalizeTableName(name)] = rows;
+        return acc;
+      }, {});
+      let matchedTabs = 0;
       Object.entries(this.KEYS).forEach(([name, key]) => {
-        const rows = tables[name] || tables[this.tableNameFromKey(key)] || tables[key] || [];
-        this.set(key, Array.isArray(rows) ? rows : []);
+        const candidates = [
+          name,
+          key,
+          this.tableNameFromKey(key),
+          this.tableNameFromKey(name),
+        ].map(value => this.normalizeTableName(value));
+        const matchedKey = candidates.find(candidate => Array.isArray(normalizedTables[candidate]));
+        if (!matchedKey) return;
+        this.set(key, normalizedTables[matchedKey]);
+        matchedTabs += 1;
       });
+      if (!matchedTabs && Object.keys(tables).length) {
+        throw new Error('No recognizable Sheet tabs were found. Confirm the Sheet uses app-generated tabs or push one record first.');
+      }
 
       if (result.sheetUrl) this.saveSettings({ googleSheetUrl: result.sheetUrl, syncEnabled: true });
       localStorage.removeItem(this.SYNC_QUEUE_KEY);
@@ -189,6 +208,10 @@ const DB = {
     return String(key || '').replace(/^darfo2_/, '').replace(/[^a-z0-9_]/gi, '_').toUpperCase();
   },
 
+  normalizeTableName(name) {
+    return String(name || '').replace(/^darfo2_/i, '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  },
+
   get(key) {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); }
     catch { return []; }
@@ -200,6 +223,7 @@ const DB = {
     if (window.AccessPolicy && !AccessPolicy.canWrite()) { window.toast?.('Report Officer or Admin access is required to enter data.', 'error'); return null; }
     const arr = this.get(key);
     record.id = record.id || Date.now() + Math.random().toString(36).slice(2);
+    if (!this.confirmNoDuplicate(key, record)) return null;
     this.stamp(record, true);
     arr.push(record);
     this.set(key, arr);
@@ -211,7 +235,9 @@ const DB = {
     const arr = this.get(key);
     const idx = arr.findIndex(r => r.id == id);
     if (idx >= 0) {
-      arr[idx] = this.stamp({ ...arr[idx], ...patch }, false);
+      const next = { ...arr[idx], ...patch };
+      if (!this.confirmNoDuplicate(key, next, id)) return null;
+      arr[idx] = this.stamp(next, false);
       this.set(key, arr);
       this.queueSync('upsert', key, arr[idx]);
       return arr[idx];
@@ -225,6 +251,73 @@ const DB = {
     this.queueSync('remove', key, { id });
   },
   clear(key) { localStorage.removeItem(key); },
+
+  confirmNoDuplicate(key, record, currentId = null) {
+    const match = this.findSimilarRecord(key, record, currentId);
+    if (!match) return true;
+    const label = this.recordLabel(match.record);
+    const pct = Math.round(match.score * 100);
+    const message = `Possible duplicate entry found (${pct}% similar):\n\n${label}\n\nSave this record anyway?`;
+    if (typeof confirm === 'function' && !confirm(message)) {
+      window.toast?.('Possible duplicate was not saved.', 'error');
+      return false;
+    }
+    return true;
+  },
+
+  findSimilarRecord(key, record, currentId = null) {
+    const rows = this.get(key).filter(row => String(row.id) !== String(currentId || ''));
+    let best = null;
+    rows.forEach(row => {
+      const score = this.similarityScore(record, row);
+      if (score >= 0.78 && (!best || score > best.score)) best = { record: row, score };
+    });
+    return best;
+  },
+
+  similarityScore(a, b) {
+    const fields = ['name','beneficiaryName','beneficiary','farmer','rsbsa','municipality','province','barangay','crop','product','productName','inputType','techType','reportType','date','distributionDate','validationDate','dateSubmitted','installedDate','installDate','inductionDate','distDate','aew','fca','description','pestObserved'];
+    const compared = fields.map(field => {
+      const av = this.normalizeComparable(a[field]);
+      const bv = this.normalizeComparable(b[field]);
+      if (!av || !bv) return null;
+      const score = av === bv ? 1
+        : av.includes(bv) || bv.includes(av) ? 0.86
+        : this.tokenSimilarity(av, bv);
+      return { field, score };
+    }).filter(value => value !== null);
+    if (!compared.length) return 0;
+    const strongFields = new Set(['name','beneficiaryName','beneficiary','farmer','rsbsa','municipality','crop','product','productName','techType','date','distributionDate','validationDate','dateSubmitted','installedDate','installDate','inductionDate','distDate','aew','description','pestObserved']);
+    const hasStrongMatch = compared.some(item => strongFields.has(item.field) && item.score >= 0.86);
+    if (compared.length < 2 && !hasStrongMatch) return 0;
+    const average = compared.reduce((sum, item) => sum + item.score, 0) / compared.length;
+    return hasStrongMatch ? average : Math.min(average, 0.7);
+  },
+
+  normalizeComparable(value) {
+    if (Array.isArray(value)) return value.join(' ');
+    if (value == null) return '';
+    return String(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  },
+
+  tokenSimilarity(a, b) {
+    const aTokens = new Set(a.split(' ').filter(Boolean));
+    const bTokens = new Set(b.split(' ').filter(Boolean));
+    if (!aTokens.size || !bTokens.size) return 0;
+    let common = 0;
+    aTokens.forEach(token => { if (bTokens.has(token)) common += 1; });
+    return common / Math.max(aTokens.size, bTokens.size);
+  },
+
+  recordLabel(record) {
+    const parts = [
+      record.name || record.beneficiaryName || record.beneficiary || record.farmer || record.aew || record.product || record.description,
+      record.municipality,
+      record.province,
+      record.date || record.distributionDate || record.validationDate || record.dateSubmitted || record.installedDate,
+    ].filter(Boolean);
+    return parts.join(' | ') || `Record ID: ${record.id || 'unknown'}`;
+  },
 
   ensureTimestamps() {
     Object.values(this.KEYS).forEach(key => {

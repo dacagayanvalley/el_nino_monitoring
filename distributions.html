@@ -263,8 +263,9 @@ function saveDist() {
     remarks:document.getElementById('d-remarks').value.trim(),
   };
   const eid=document.getElementById('d-edit-id').value;
-  if(eid){DB.update(DB.KEYS.DISTRIBUTIONS,eid,rec);toast('Updated');}
-  else{DB.add(DB.KEYS.DISTRIBUTIONS,rec);toast('Distribution recorded');}
+  const saved = eid ? DB.update(DB.KEYS.DISTRIBUTIONS,eid,rec) : DB.add(DB.KEYS.DISTRIBUTIONS,rec);
+  if(!saved)return;
+  toast(eid ? 'Updated' : 'Distribution recorded');
   closeModal('dist-modal');render();
 }
 

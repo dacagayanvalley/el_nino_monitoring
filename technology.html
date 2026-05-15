@@ -182,7 +182,9 @@ function saveTech() {
   const isFunctional = document.getElementById('t-func').value==='true';
   const rec={type:document.getElementById('t-type').value,province:document.getElementById('t-province').value,municipality:muni,barangay:document.getElementById('t-barangay').value.trim(),beneficiary:bene,installDate:document.getElementById('t-date').value,functional:isFunctional,functionalityStatus:isFunctional?'Functional':'Non-functional',areaServed:+document.getElementById('t-area').value,lastCheck:document.getElementById('t-lastcheck').value,issue:document.getElementById('t-issue').value.trim(),correctiveAction:document.getElementById('t-action').value.trim(),checkedBy:document.getElementById('t-checkedby').value.trim(),photoTaken:document.getElementById('t-photo').value,budgetAmount:+document.getElementById('t-budget').value||0,obligatedAmount:+document.getElementById('t-obligated').value||0,disbursedAmount:+document.getElementById('t-disbursed').value||0,lat:+document.getElementById('t-lat').value||null,lng:+document.getElementById('t-lng').value||null};
   const eid=document.getElementById('t-edit-id').value;
-  if(eid){DB.update(DB.KEYS.TECH,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.TECH,rec);toast('Saved');}
+  const saved = eid ? DB.update(DB.KEYS.TECH,eid,rec) : DB.add(DB.KEYS.TECH,rec);
+  if(!saved)return;
+  toast(eid ? 'Updated' : 'Saved');
   closeModal('tech-modal');render();
 }
 function delTech(id){if(!confirm('Delete?'))return;DB.remove(DB.KEYS.TECH,id);render();}
