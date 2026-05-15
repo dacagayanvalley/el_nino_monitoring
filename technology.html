@@ -35,9 +35,14 @@
         <div class="form-group"><label class="form-label">Area Served (ha)</label><input id="t-area" type="number" step="0.1" value="0"></div>
         <div class="form-group"><label class="form-label">Last Check Date</label><input id="t-lastcheck" type="date"></div>
         <div class="form-group"><label class="form-label">GPS Lat</label><input id="t-lat" type="number" step="0.0001"></div>
+        <div class="form-group"><label class="form-label">GPS Lng</label><input id="t-lng" type="number" step="0.0001"></div>
+        <div class="form-group"><label class="form-label">Checked By</label><input id="t-checkedby" placeholder="AEW / engineer"></div>
+        <div class="form-group"><label class="form-label">Photo Taken?</label><select id="t-photo"><option>No</option><option>Yes</option></select></div>
       </div>
       <div class="form-group" style="margin-top:8px"><label class="form-label">Issue / Non-Functionality Reason (if any)</label>
         <input id="t-issue" placeholder="Describe issue if non-functional"></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Corrective Action Needed / Taken</label>
+        <textarea id="t-action"></textarea></div>
       <input type="hidden" id="t-edit-id">
     </div>
     <div class="modal-footer">
@@ -130,8 +135,10 @@ function render() {
 function openAddTech() {
   document.getElementById('modal-title').textContent='Add Technology Record';
   document.getElementById('t-edit-id').value='';
-  ['t-muni','t-barangay','t-bene','t-issue'].forEach(id=>document.getElementById(id).value='');
+  ['t-muni','t-barangay','t-bene','t-issue','t-lat','t-lng','t-checkedby','t-action'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('t-area').value='0';
+  document.getElementById('t-func').value='true';
+  document.getElementById('t-photo').value='No';
   document.getElementById('t-date').value=new Date().toISOString().split('T')[0];
   document.getElementById('t-lastcheck').value=new Date().toISOString().split('T')[0];
   openModal('tech-modal');
@@ -151,13 +158,18 @@ function editTech(id) {
   document.getElementById('t-lastcheck').value=t.lastCheck||'';
   document.getElementById('t-issue').value=t.issue||'';
   document.getElementById('t-lat').value=t.lat||'';
+  document.getElementById('t-lng').value=t.lng||'';
+  document.getElementById('t-checkedby').value=t.checkedBy||'';
+  document.getElementById('t-photo').value=t.photoTaken||'No';
+  document.getElementById('t-action').value=t.correctiveAction||'';
   openModal('tech-modal');
 }
 function saveTech() {
   const muni=document.getElementById('t-muni').value.trim();
   const bene=document.getElementById('t-bene').value.trim();
   if(!muni||!bene){toast('Municipality and beneficiary required','error');return;}
-  const rec={type:document.getElementById('t-type').value,province:document.getElementById('t-province').value,municipality:muni,barangay:document.getElementById('t-barangay').value.trim(),beneficiary:bene,installDate:document.getElementById('t-date').value,functional:document.getElementById('t-func').value==='true',areaServed:+document.getElementById('t-area').value,lastCheck:document.getElementById('t-lastcheck').value,issue:document.getElementById('t-issue').value.trim(),lat:+document.getElementById('t-lat').value||null};
+  const isFunctional = document.getElementById('t-func').value==='true';
+  const rec={type:document.getElementById('t-type').value,province:document.getElementById('t-province').value,municipality:muni,barangay:document.getElementById('t-barangay').value.trim(),beneficiary:bene,installDate:document.getElementById('t-date').value,functional:isFunctional,functionalityStatus:isFunctional?'Functional':'Non-functional',areaServed:+document.getElementById('t-area').value,lastCheck:document.getElementById('t-lastcheck').value,issue:document.getElementById('t-issue').value.trim(),correctiveAction:document.getElementById('t-action').value.trim(),checkedBy:document.getElementById('t-checkedby').value.trim(),photoTaken:document.getElementById('t-photo').value,lat:+document.getElementById('t-lat').value||null,lng:+document.getElementById('t-lng').value||null};
   const eid=document.getElementById('t-edit-id').value;
   if(eid){DB.update(DB.KEYS.TECH,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.TECH,rec);toast('Saved');}
   closeModal('tech-modal');render();

@@ -13,6 +13,7 @@ const NAV = [
     { label:'SO3 – Biofert & BCAs',   href:'objective3.html', icon:'leaf' },
   ]},
   { group: 'Data Entry', items: [
+    { label:'Municipality Validation', href:'municipalities.html', icon:'map' },
     { label:'Beneficiary Registry',   href:'beneficiaries.html', icon:'users' },
     { label:'Distribution Tracker',   href:'distributions.html', icon:'box' },
     { label:'Field Reports',          href:'fieldreports.html',  icon:'clipboard' },

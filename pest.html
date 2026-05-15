@@ -47,9 +47,16 @@
           <select id="ps-condition"><option>Healthy</option><option>Stressed</option><option>Wilting</option><option>Dying</option></select></div>
         <div class="form-group"><label class="form-label">Intervention Received?</label>
           <select id="ps-interv"><option value="true">Yes</option><option value="false">No</option></select></div>
+        <div class="form-group"><label class="form-label">Drought Stress Indicators</label>
+          <select id="ps-drought"><option>None observed</option><option>Leaf rolling</option><option>Wilting</option><option>Stunted growth</option><option>Severe moisture stress</option></select></div>
+        <div class="form-group"><label class="form-label">Validation Status</label>
+          <select id="ps-validation"><option>Submitted</option><option>Validated</option><option>Needs verification</option></select></div>
         <div class="form-group"><label class="form-label">GPS Latitude</label><input id="ps-lat" type="number" step="0.0001" placeholder="e.g. 17.1441"></div>
         <div class="form-group"><label class="form-label">GPS Longitude</label><input id="ps-lng" type="number" step="0.0001" placeholder="e.g. 121.8894"></div>
+        <div class="form-group"><label class="form-label">Photo Taken?</label><select id="ps-photo"><option>No</option><option>Yes</option></select></div>
       </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Intervention Details / Action Taken</label><textarea id="ps-action"></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Recommended Action</label><textarea id="ps-recommendation"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('pest-modal')">Cancel</button>
@@ -157,6 +164,11 @@ function savePest() {
     pctAffected:+document.getElementById('ps-pct').value,
     cropCondition:document.getElementById('ps-condition').value,
     interventionReceived:document.getElementById('ps-interv').value==='true',
+    droughtStress:document.getElementById('ps-drought').value,
+    validationStatus:document.getElementById('ps-validation').value,
+    photoTaken:document.getElementById('ps-photo').value,
+    actionTaken:document.getElementById('ps-action').value.trim(),
+    recommendedAction:document.getElementById('ps-recommendation').value.trim(),
     lat:+document.getElementById('ps-lat').value||null,
     lng:+document.getElementById('ps-lng').value||null,
   });

@@ -35,16 +35,34 @@
         <div class="form-group"><label class="form-label">Province</label>
           <select id="d-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
         <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="d-municipality"></div>
+        <div class="form-group"><label class="form-label">Barangay</label><input id="d-barangay"></div>
         <div class="form-group"><label class="form-label">Quantity<span class="req">*</span></label><input id="d-qty" type="number" step="0.1" min="0" value="5"></div>
         <div class="form-group"><label class="form-label">Unit</label>
           <select id="d-unit"><option>kg</option><option>packs</option><option>pcs</option><option>bags</option><option>sachet</option><option>liters</option></select></div>
+        <div class="form-group"><label class="form-label">Input Source</label><input id="d-source" placeholder="DA-RFO2 / station / supplier"></div>
+        <div class="form-group"><label class="form-label">Distribution Venue</label><input id="d-venue"></div>
         <div class="form-group"><label class="form-label">Distribution Date<span class="req">*</span></label><input id="d-date" type="date"></div>
         <div class="form-group"><label class="form-label">Focal Person</label><input id="d-focal" placeholder="Name of responsible person"></div>
+        <div class="form-group"><label class="form-label">Recipient Signature?</label>
+          <select id="d-signature"><option>No</option><option>Yes</option></select></div>
+        <div class="form-group"><label class="form-label">Witnessed By</label><input id="d-witness"></div>
         <div class="form-group"><label class="form-label">Establishment Status (if visited)</label>
           <select id="d-estab"><option value="">Not yet visited</option><option>Good</option><option>Fair</option><option>Poor</option></select></div>
         <div class="form-group"><label class="form-label">Distribution Status</label>
           <select id="d-status"><option>Distributed</option><option>Pending</option></select></div>
+        <div class="form-group"><label class="form-label">GPS / Distribution Site</label><input id="d-gps" placeholder="lat,lng"></div>
+        <div class="form-group"><label class="form-label">Photo Taken?</label><select id="d-photo"><option>No</option><option>Yes</option></select></div>
       </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Crop Establishment Monitoring</div>
+      <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">Planting Date</label><input id="d-planting-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Area Planted (ha)</label><input id="d-area-planted" type="number" step="0.01" min="0"></div>
+        <div class="form-group"><label class="form-label">Stand / Survival (%)</label><input id="d-stand" type="number" min="0" max="100"></div>
+        <div class="form-group"><label class="form-label">Biofertilizer Applied?</label><select id="d-biofert-applied"><option>No</option><option>Yes</option><option>N/A</option></select></div>
+        <div class="form-group"><label class="form-label">BCA Applied?</label><select id="d-bca-applied"><option>No</option><option>Yes</option><option>N/A</option></select></div>
+        <div class="form-group"><label class="form-label">Plot GPS / Photo Ref.</label><input id="d-plot-ref"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Establishment Remarks / AEW Recommendation</label><textarea id="d-remarks"></textarea></div>
       <input type="hidden" id="d-edit-id">
     </div>
     <div class="modal-footer">
@@ -145,8 +163,18 @@ function openDistModal() {
   document.getElementById('d-bene-name').value='';
   document.getElementById('d-rsbsa').value='';
   document.getElementById('d-municipality').value='';
+  document.getElementById('d-barangay').value='';
+  document.getElementById('d-source').value='';
+  document.getElementById('d-venue').value='';
   document.getElementById('d-focal').value='';
+  document.getElementById('d-witness').value='';
+  document.getElementById('d-gps').value='';
+  document.getElementById('d-photo').value='No';
+  document.getElementById('d-signature').value='No';
   document.getElementById('d-qty').value='5';
+  ['d-planting-date','d-area-planted','d-stand','d-plot-ref','d-remarks'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('d-biofert-applied').value='No';
+  document.getElementById('d-bca-applied').value='No';
   document.getElementById('d-date').value=new Date().toISOString().split('T')[0];
   openModal('dist-modal');
 }
@@ -162,12 +190,26 @@ function editDist(id) {
   document.getElementById('d-rsbsa').value=d.rsbsa||'';
   document.getElementById('d-province').value=d.province;
   document.getElementById('d-municipality').value=d.municipality;
+  document.getElementById('d-barangay').value=d.barangay||'';
   document.getElementById('d-qty').value=d.quantity;
   document.getElementById('d-unit').value=d.unit;
+  document.getElementById('d-source').value=d.source||'';
+  document.getElementById('d-venue').value=d.venue||'';
   document.getElementById('d-date').value=d.distributionDate;
   document.getElementById('d-focal').value=d.focalPerson||'';
+  document.getElementById('d-signature').value=d.recipientSignature||'No';
+  document.getElementById('d-witness').value=d.witnessedBy||'';
   document.getElementById('d-estab').value=d.establishment||'';
   document.getElementById('d-status').value=d.status;
+  document.getElementById('d-gps').value=d.gps||'';
+  document.getElementById('d-photo').value=d.photoTaken||'No';
+  document.getElementById('d-planting-date').value=d.plantingDate||'';
+  document.getElementById('d-area-planted').value=d.areaPlanted||'';
+  document.getElementById('d-stand').value=d.standPercent||'';
+  document.getElementById('d-biofert-applied').value=d.biofertApplied||'No';
+  document.getElementById('d-bca-applied').value=d.bcaApplied||'No';
+  document.getElementById('d-plot-ref').value=d.plotReference||'';
+  document.getElementById('d-remarks').value=d.remarks||'';
   openModal('dist-modal');
 }
 
@@ -184,12 +226,26 @@ function saveDist() {
     rsbsa:document.getElementById('d-rsbsa').value.trim(),
     province:document.getElementById('d-province').value,
     municipality:document.getElementById('d-municipality').value.trim(),
+    barangay:document.getElementById('d-barangay').value.trim(),
     quantity:qty,
     unit:document.getElementById('d-unit').value,
+    source:document.getElementById('d-source').value.trim(),
+    venue:document.getElementById('d-venue').value.trim(),
     distributionDate:date,
     focalPerson:document.getElementById('d-focal').value.trim(),
+    recipientSignature:document.getElementById('d-signature').value,
+    witnessedBy:document.getElementById('d-witness').value.trim(),
     establishment:document.getElementById('d-estab').value,
     status:document.getElementById('d-status').value,
+    gps:document.getElementById('d-gps').value.trim(),
+    photoTaken:document.getElementById('d-photo').value,
+    plantingDate:document.getElementById('d-planting-date').value,
+    areaPlanted:+document.getElementById('d-area-planted').value||null,
+    standPercent:+document.getElementById('d-stand').value||null,
+    biofertApplied:document.getElementById('d-biofert-applied').value,
+    bcaApplied:document.getElementById('d-bca-applied').value,
+    plotReference:document.getElementById('d-plot-ref').value.trim(),
+    remarks:document.getElementById('d-remarks').value.trim(),
   };
   const eid=document.getElementById('d-edit-id').value;
   if(eid){DB.update(DB.KEYS.DISTRIBUTIONS,eid,rec);toast('Updated');}

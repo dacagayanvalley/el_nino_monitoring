@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Municipality Validation - DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Municipality Validation</span>
+      <span class="topbar-subtitle">- CRVA/PAGASA validation source for map display</span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<div class="modal-overlay hidden" id="muni-modal">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-header"><span id="modal-title">Validate Municipality</span><button class="modal-close" onclick="closeModal('muni-modal')">x</button></div>
+    <div class="modal-body">
+      <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">Validation Date<span class="req">*</span></label><input id="m-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Province<span class="req">*</span></label>
+          <select id="m-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option><option>Aurora</option></select></div>
+        <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="m-name"></div>
+        <div class="form-group"><label class="form-label">PAGASA Drought Status</label>
+          <select id="m-pagasa"><option>Dry Condition</option><option>Dry Spell</option><option>Drought</option><option>Normal</option><option>For validation</option></select></div>
+        <div class="form-group"><label class="form-label">CRVA Risk Level</label>
+          <select id="m-risk"><option>High</option><option>Moderate</option><option>Low</option><option>For validation</option></select></div>
+        <div class="form-group"><label class="form-label">Validation Result</label>
+          <select id="m-result"><option>Confirmed</option><option>For revalidation</option><option>Not eligible</option></select></div>
+        <div class="form-group"><label class="form-label">Affected Barangays</label><input id="m-barangays" placeholder="Comma-separated or count"></div>
+        <div class="form-group"><label class="form-label">Estimated Farmers</label><input id="m-farmers" type="number" min="0"></div>
+        <div class="form-group"><label class="form-label">Estimated Area (ha)</label><input id="m-area" type="number" min="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Water Access / Source</label><input id="m-water" placeholder="Creek, SWIP, shallow tube well..."></div>
+        <div class="form-group"><label class="form-label">Validated By</label><input id="m-validator" placeholder="Name / Office"></div>
+        <div class="form-group"><label class="form-label">GPS / Reference Point</label><input id="m-gps" placeholder="lat,lng or map reference"></div>
+      </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Eligible Crops</div>
+      <div id="m-crops" style="display:flex;flex-wrap:wrap;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Mungbean" style="width:auto"> Mungbean</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Peanut" style="width:auto"> Peanut</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Watermelon" style="width:auto"> Watermelon</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Onion" style="width:auto"> Onion</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Ube" style="width:auto"> Ube</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Mango" style="width:auto"> Mango</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Rice" style="width:auto"> Rice</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Corn" style="width:auto"> Corn</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="High Value Crops" style="width:auto"> High Value Crops</label>
+      </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Recommended Interventions / Technologies</div>
+      <div id="m-tech" style="display:flex;flex-wrap:wrap;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Seeds / Planting Materials" style="width:auto"> Seeds / Planting Materials</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Biofertilizer" style="width:auto"> Biofertilizer</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="BCA" style="width:auto"> BCA</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="INS" style="width:auto"> INS</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="SPIS" style="width:auto"> SPIS</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Rain Shelter" style="width:auto"> Rain Shelter</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="POT / Zero Tillage" style="width:auto"> POT / Zero Tillage</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Mango Flower Induction" style="width:auto"> Mango Flower Induction</label>
+      </div>
+      <div class="form-group" style="margin-top:12px"><label class="form-label">Remarks / Basis of Validation</label><textarea id="m-remarks"></textarea></div>
+      <input type="hidden" id="m-edit-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('muni-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMunicipality()">Save Municipality</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+let filterProvince='', filterRisk='', searchQ='';
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('municipalities.html');
+  document.getElementById('m-date').value = new Date().toISOString().split('T')[0];
+  render();
+});
+
+function checkedValues(selector){ return [...document.querySelectorAll(`${selector} input:checked`)].map(c=>c.value); }
+function setCheckedValues(selector, values){ document.querySelectorAll(`${selector} input`).forEach(c=>{ c.checked=(values||[]).includes(c.value); }); }
+
+function render() {
+  let rows = DB.get(DB.KEYS.MUNICIPALITIES);
+  const all = rows;
+  if (filterProvince) rows = rows.filter(r=>r.province===filterProvince);
+  if (filterRisk) rows = rows.filter(r=>r.crvaRisk===filterRisk || r.riskLevel===filterRisk);
+  if (searchQ) rows = rows.filter(r=>`${r.municipality}${r.province}${(r.crops||[]).join(' ')}${(r.tech||[]).join(' ')}`.toLowerCase().includes(searchQ.toLowerCase()));
+  const confirmed = all.filter(r=>r.confirmed || r.validationResult==='Confirmed').length;
+  const provinces = [...new Set(all.map(r=>r.province).filter(Boolean))];
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile blue"><div class="kpi-label">Validated Municipalities</div><div class="kpi-value">${all.length}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Confirmed</div><div class="kpi-value">${confirmed}</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">High Risk</div><div class="kpi-value">${all.filter(r=>(r.crvaRisk||r.riskLevel)==='High').length}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Filtered</div><div class="kpi-value">${rows.length}</div></div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Municipality Validation Records <small>${rows.length} shown</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input placeholder="Search municipality / crop..." style="width:210px" value="${searchQ}" oninput="searchQ=this.value;render()">
+          <select onchange="filterProvince=this.value;render()"><option value="">All Provinces</option>${provinces.map(p=>`<option ${filterProvince===p?'selected':''}>${p}</option>`).join('')}</select>
+          <select onchange="filterRisk=this.value;render()"><option value="">All Risk</option>${['High','Moderate','Low','For validation'].map(r=>`<option ${filterRisk===r?'selected':''}>${r}</option>`).join('')}</select>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.MUNICIPALITIES),'municipalities.csv')">${ICONS.download} CSV</button>
+          <button class="btn btn-primary btn-sm" data-access="write" onclick="openMuniModal()">${ICONS.plus} Add</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Municipality</th><th>Province</th><th>PAGASA</th><th>CRVA Risk</th><th>Result</th><th>Crops</th><th>Interventions</th><th>Validator</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${rows.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records</td></tr>':
+              rows.map(r=>`<tr>
+                <td>${fmt.date(r.validationDate)}</td>
+                <td><strong>${r.municipality}</strong></td>
+                <td>${r.province}</td>
+                <td>${r.pagasaStatus||'—'}</td>
+                <td>${fmt.statusBadge(r.crvaRisk||r.riskLevel||'For validation')}</td>
+                <td>${fmt.statusBadge(r.validationResult||((r.confirmed)?'Confirmed':'For revalidation'))}</td>
+                <td style="font-size:.75rem;max-width:170px">${(r.crops||[]).join(', ')||'—'}</td>
+                <td style="font-size:.75rem;max-width:190px">${(r.tech||[]).join(', ')||'—'}</td>
+                <td>${AccessPolicy.isPublic()?'Withheld':(r.validatedBy||'—')}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-secondary btn-sm" data-access="write" onclick="editMunicipality('${r.id}')">${ICONS.edit}</button>
+                  <button class="btn btn-danger btn-sm" data-access="admin" onclick="deleteMunicipality('${r.id}')">${ICONS.trash}</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  AccessPolicy.apply();
+}
+
+function openMuniModal() {
+  document.getElementById('modal-title').textContent = 'Validate Municipality';
+  document.getElementById('m-edit-id').value = '';
+  ['m-name','m-barangays','m-farmers','m-area','m-water','m-validator','m-gps','m-remarks'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('m-result').value = 'Confirmed';
+  setCheckedValues('#m-crops', []);
+  setCheckedValues('#m-tech', []);
+  openModal('muni-modal');
+}
+
+function editMunicipality(id) {
+  const r = DB.get(DB.KEYS.MUNICIPALITIES).find(x=>x.id===id);
+  if (!r) return;
+  document.getElementById('modal-title').textContent = 'Edit Municipality Validation';
+  document.getElementById('m-edit-id').value = id;
+  document.getElementById('m-date').value = r.validationDate || '';
+  document.getElementById('m-province').value = r.province || 'Isabela';
+  document.getElementById('m-name').value = r.municipality || '';
+  document.getElementById('m-pagasa').value = r.pagasaStatus || 'For validation';
+  document.getElementById('m-risk').value = r.crvaRisk || r.riskLevel || 'For validation';
+  document.getElementById('m-result').value = r.validationResult || (r.confirmed?'Confirmed':'For revalidation');
+  document.getElementById('m-barangays').value = r.affectedBarangays || '';
+  document.getElementById('m-farmers').value = r.estimatedFarmers || '';
+  document.getElementById('m-area').value = r.estimatedArea || '';
+  document.getElementById('m-water').value = r.waterAccess || '';
+  document.getElementById('m-validator').value = r.validatedBy || '';
+  document.getElementById('m-gps').value = r.gps || '';
+  document.getElementById('m-remarks').value = r.remarks || '';
+  setCheckedValues('#m-crops', r.crops);
+  setCheckedValues('#m-tech', r.tech);
+  openModal('muni-modal');
+}
+
+function saveMunicipality() {
+  const municipality = document.getElementById('m-name').value.trim();
+  const validationDate = document.getElementById('m-date').value;
+  if (!municipality || !validationDate) { toast('Municipality and validation date are required','error'); return; }
+  const result = document.getElementById('m-result').value;
+  const rec = {
+    validationDate,
+    province: document.getElementById('m-province').value,
+    municipality,
+    pagasaStatus: document.getElementById('m-pagasa').value,
+    crvaRisk: document.getElementById('m-risk').value,
+    riskLevel: document.getElementById('m-risk').value,
+    validationResult: result,
+    confirmed: result === 'Confirmed',
+    affectedBarangays: document.getElementById('m-barangays').value.trim(),
+    estimatedFarmers: +document.getElementById('m-farmers').value || null,
+    estimatedArea: +document.getElementById('m-area').value || null,
+    waterAccess: document.getElementById('m-water').value.trim(),
+    validatedBy: document.getElementById('m-validator').value.trim(),
+    gps: document.getElementById('m-gps').value.trim(),
+    crops: checkedValues('#m-crops'),
+    tech: checkedValues('#m-tech'),
+    remarks: document.getElementById('m-remarks').value.trim(),
+  };
+  const eid = document.getElementById('m-edit-id').value;
+  if (eid) { DB.update(DB.KEYS.MUNICIPALITIES, eid, rec); toast('Municipality updated'); }
+  else { DB.add(DB.KEYS.MUNICIPALITIES, rec); toast('Municipality validated'); }
+  closeModal('muni-modal');
+  render();
+}
+
+function deleteMunicipality(id) {
+  if (!confirm('Delete this municipality validation record?')) return;
+  DB.remove(DB.KEYS.MUNICIPALITIES, id);
+  toast('Deleted');
+  render();
+}
+</script>
+</body>
+</html>

@@ -42,6 +42,11 @@
         <div class="form-group"><label class="form-label">FCA Name (or None)</label><input id="b-fca" value="None"></div>
         <div class="form-group"><label class="form-label">Land Tenure</label>
           <select id="b-tenure"><option>Owner</option><option>Tenant/Lessee</option><option>Other</option></select></div>
+        <div class="form-group"><label class="form-label">Validation Date</label><input id="b-date" type="date"></div>
+        <div class="form-group"><label class="form-label">GPS / Farm Location</label><input id="b-gps" placeholder="lat,lng or Sitio"></div>
+        <div class="form-group"><label class="form-label">Validated By</label><input id="b-validatedby" placeholder="AEW / validator"></div>
+        <div class="form-group"><label class="form-label">Farm Photo Taken?</label>
+          <select id="b-photo"><option value="No">No</option><option value="Yes">Yes</option></select></div>
       </div>
       <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Interventions to Receive</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px" id="intervention-checks">
@@ -65,6 +70,11 @@
         <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-ip" type="checkbox" style="width:auto"> Indigenous Peoples (self-identified)</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-pwd" type="checkbox" style="width:auto"> Person with Disability (voluntary)</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer"><input id="b-gida" type="checkbox" style="width:auto"> GIDA Location</label>
+      </div>
+      <div class="form-grid cols-3" style="margin-top:10px">
+        <div class="form-group"><label class="form-label">IP Status</label><select id="b-ip-status"><option>Prefer not to answer</option><option>No</option><option>Yes</option></select></div>
+        <div class="form-group"><label class="form-label">PWD Status</label><select id="b-pwd-status"><option>Prefer not to answer</option><option>No</option><option>Yes</option></select></div>
+        <div class="form-group"><label class="form-label">GIDA Location</label><select id="b-gida-status"><option>Unknown</option><option>No</option><option>Yes</option></select></div>
       </div>
       <input type="hidden" id="b-edit-id">
     </div>
@@ -173,9 +183,16 @@ function openAddModal() {
   document.getElementById('b-municipality').value = '';
   document.getElementById('b-barangay').value = '';
   document.getElementById('b-fca').value = 'None';
+  document.getElementById('b-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('b-gps').value = '';
+  document.getElementById('b-validatedby').value = '';
+  document.getElementById('b-photo').value = 'No';
   document.getElementById('b-ip').checked = false;
   document.getElementById('b-pwd').checked = false;
   document.getElementById('b-gida').checked = false;
+  document.getElementById('b-ip-status').value = 'Prefer not to answer';
+  document.getElementById('b-pwd-status').value = 'Prefer not to answer';
+  document.getElementById('b-gida-status').value = 'Unknown';
   document.querySelectorAll('#intervention-checks input').forEach(c=>c.checked=false);
   openModal('bene-modal');
 }
@@ -196,9 +213,16 @@ function editBeneficiary(id) {
   document.getElementById('b-crop').value = b.crop;
   document.getElementById('b-fca').value = b.fca||'None';
   document.getElementById('b-tenure').value = b.tenure||'Owner';
+  document.getElementById('b-date').value = b.validationDate||'';
+  document.getElementById('b-gps').value = b.gps||'';
+  document.getElementById('b-validatedby').value = b.validatedBy||'';
+  document.getElementById('b-photo').value = b.photoTaken||'No';
   document.getElementById('b-ip').checked = !!b.ip;
   document.getElementById('b-pwd').checked = !!b.pwd;
   document.getElementById('b-gida').checked = !!b.gida;
+  document.getElementById('b-ip-status').value = b.ipStatus || (b.ip?'Yes':'Prefer not to answer');
+  document.getElementById('b-pwd-status').value = b.pwdStatus || (b.pwd?'Yes':'Prefer not to answer');
+  document.getElementById('b-gida-status').value = b.gidaStatus || (b.gida?'Yes':'Unknown');
   document.querySelectorAll('#intervention-checks input').forEach(c=>{
     c.checked = (b.interventions||[]).includes(c.value);
   });
@@ -214,6 +238,9 @@ function saveBeneficiary() {
     if (!confirm(`Farm size is ${farmSize} ha — exceeds 0.5 ha priority threshold. Include anyway?`)) return;
   }
   const interventions = [...document.querySelectorAll('#intervention-checks input:checked')].map(c=>c.value);
+  const ipStatus = document.getElementById('b-ip-status').value;
+  const pwdStatus = document.getElementById('b-pwd-status').value;
+  const gidaStatus = document.getElementById('b-gida-status').value;
   const rec = {
     name, rsbsa: document.getElementById('b-rsbsa').value.trim(),
     sex: document.getElementById('b-sex').value,
@@ -225,9 +252,14 @@ function saveBeneficiary() {
     crop: document.getElementById('b-crop').value,
     fca: document.getElementById('b-fca').value.trim()||'None',
     tenure: document.getElementById('b-tenure').value,
-    ip: document.getElementById('b-ip').checked,
-    pwd: document.getElementById('b-pwd').checked,
-    gida: document.getElementById('b-gida').checked,
+    validationDate: document.getElementById('b-date').value,
+    gps: document.getElementById('b-gps').value.trim(),
+    validatedBy: document.getElementById('b-validatedby').value.trim(),
+    photoTaken: document.getElementById('b-photo').value,
+    ipStatus, pwdStatus, gidaStatus,
+    ip: document.getElementById('b-ip').checked || ipStatus === 'Yes',
+    pwd: document.getElementById('b-pwd').checked || pwdStatus === 'Yes',
+    gida: document.getElementById('b-gida').checked || gidaStatus === 'Yes',
     interventions,
   };
   const editId = document.getElementById('b-edit-id').value;

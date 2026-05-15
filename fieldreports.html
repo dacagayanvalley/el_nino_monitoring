@@ -22,6 +22,8 @@
     <div class="modal-header"><span id="fr-modal-title">Submit Weekly Field Report</span><button class="modal-close" onclick="closeModal('fr-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">Report Type</label><select id="fr-type"><option>Weekly</option><option>Monthly</option><option>Field Validation Checklist</option></select></div>
+        <div class="form-group"><label class="form-label">Date Submitted</label><input id="fr-submitted" type="date"></div>
         <div class="form-group"><label class="form-label">AEW Name<span class="req">*</span></label><input id="fr-aew"></div>
         <div class="form-group"><label class="form-label">Province</label><select id="fr-province"><option>Isabela</option><option>Cagayan</option><option>Nueva Vizcaya</option><option>Quirino</option></select></div>
         <div class="form-group"><label class="form-label">Municipality<span class="req">*</span></label><input id="fr-muni"></div>
@@ -41,6 +43,20 @@
         <textarea id="fr-issues" placeholder="Problems encountered, delays, access issues..."></textarea></div>
       <div class="form-group" style="margin-top:8px"><label class="form-label">Actions Taken or Recommended</label>
         <textarea id="fr-actions"></textarea></div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Monthly Report Fields</div>
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Accomplishment Summary</label><textarea id="fr-month-accomp"></textarea></div>
+        <div class="form-group"><label class="form-label">Beneficiary / Area Coverage</label><textarea id="fr-month-coverage"></textarea></div>
+        <div class="form-group"><label class="form-label">GEDSI Summary</label><textarea id="fr-month-gedsi"></textarea></div>
+        <div class="form-group"><label class="form-label">Next Month Plans</label><textarea id="fr-month-next"></textarea></div>
+      </div>
+      <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Field Validation Checklist</div>
+      <div class="form-grid cols-3">
+        <div class="form-group"><label class="form-label">Site Visited?</label><select id="fr-site-visited"><option>No</option><option>Yes</option></select></div>
+        <div class="form-group"><label class="form-label">Records Matched?</label><select id="fr-records-match"><option>Not checked</option><option>Yes</option><option>No</option></select></div>
+        <div class="form-group"><label class="form-label">Beneficiary Interviewed?</label><select id="fr-interviewed"><option>No</option><option>Yes</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label class="form-label">Checklist Findings / Corrective Action</label><textarea id="fr-checklist"></textarea></div>
       <input type="hidden" id="fr-edit-id">
     </div>
     <div class="modal-footer">
@@ -55,6 +71,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   buildSidebar('fieldreports.html');
   const today = new Date().toISOString().split('T')[0];
+  document.getElementById('fr-submitted').value = today;
   document.getElementById('fr-end').value = today;
   const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
   document.getElementById('fr-start').value = weekAgo.toISOString().split('T')[0];
@@ -86,7 +103,7 @@ function render() {
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
               <div>
                 <div style="font-weight:700;font-size:.9rem">${AccessPolicy.isPublic()?'AEW withheld':r.aew} — ${r.municipality}, ${r.province}</div>
-                <div style="font-size:.76rem;color:var(--gray-500);margin-top:2px">Period: ${fmt.date(r.periodStart)} – ${fmt.date(r.periodEnd)} &nbsp;|&nbsp; Submitted: ${fmt.date(r.createdAt)}</div>
+                <div style="font-size:.76rem;color:var(--gray-500);margin-top:2px">${r.reportType||'Weekly'} | Period: ${fmt.date(r.periodStart)} – ${fmt.date(r.periodEnd)} &nbsp;|&nbsp; Submitted: ${fmt.date(r.dateSubmitted||r.createdAt)}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center">
                 ${fmt.statusBadge(r.status)}
@@ -115,7 +132,12 @@ function render() {
 function openFRModal(){
   document.getElementById('fr-modal-title').textContent='Submit Weekly Field Report';
   document.getElementById('fr-edit-id').value='';
-  ['fr-aew','fr-muni','fr-dist','fr-estab','fr-pest','fr-tech','fr-issues','fr-actions'].forEach(id=>document.getElementById(id).value='');
+  ['fr-aew','fr-muni','fr-dist','fr-estab','fr-pest','fr-tech','fr-issues','fr-actions','fr-month-accomp','fr-month-coverage','fr-month-gedsi','fr-month-next','fr-checklist'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fr-type').value='Weekly';
+  document.getElementById('fr-submitted').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fr-site-visited').value='No';
+  document.getElementById('fr-records-match').value='Not checked';
+  document.getElementById('fr-interviewed').value='No';
   openModal('fr-modal');
 }
 
@@ -123,6 +145,8 @@ function editReport(id) {
   const r=DB.get(DB.KEYS.FIELD_REPORTS).find(x=>x.id===id); if(!r)return;
   document.getElementById('fr-modal-title').textContent='Edit Report';
   document.getElementById('fr-edit-id').value=id;
+  document.getElementById('fr-type').value=r.reportType||'Weekly';
+  document.getElementById('fr-submitted').value=r.dateSubmitted||'';
   document.getElementById('fr-aew').value=r.aew;
   document.getElementById('fr-province').value=r.province;
   document.getElementById('fr-muni').value=r.municipality;
@@ -135,6 +159,14 @@ function editReport(id) {
   document.getElementById('fr-tech').value=r.techSummary;
   document.getElementById('fr-issues').value=r.issues||'';
   document.getElementById('fr-actions').value=r.actions||'';
+  document.getElementById('fr-month-accomp').value=r.monthlyAccomplishment||'';
+  document.getElementById('fr-month-coverage').value=r.monthlyCoverage||'';
+  document.getElementById('fr-month-gedsi').value=r.monthlyGedsi||'';
+  document.getElementById('fr-month-next').value=r.nextMonthPlans||'';
+  document.getElementById('fr-site-visited').value=r.siteVisited||'No';
+  document.getElementById('fr-records-match').value=r.recordsMatched||'Not checked';
+  document.getElementById('fr-interviewed').value=r.beneficiaryInterviewed||'No';
+  document.getElementById('fr-checklist').value=r.checklistFindings||'';
   openModal('fr-modal');
 }
 
@@ -142,7 +174,7 @@ function saveReport(){
   const aew=document.getElementById('fr-aew').value.trim();
   const muni=document.getElementById('fr-muni').value.trim();
   if(!aew||!muni){toast('AEW and municipality required','error');return;}
-  const rec={aew,province:document.getElementById('fr-province').value,municipality:muni,periodStart:document.getElementById('fr-start').value,periodEnd:document.getElementById('fr-end').value,status:document.getElementById('fr-status').value,distributionsSummary:document.getElementById('fr-dist').value.trim(),establishmentSummary:document.getElementById('fr-estab').value.trim(),pestSummary:document.getElementById('fr-pest').value.trim(),techSummary:document.getElementById('fr-tech').value.trim(),issues:document.getElementById('fr-issues').value.trim(),actions:document.getElementById('fr-actions').value.trim()};
+  const rec={reportType:document.getElementById('fr-type').value,dateSubmitted:document.getElementById('fr-submitted').value,aew,province:document.getElementById('fr-province').value,municipality:muni,periodStart:document.getElementById('fr-start').value,periodEnd:document.getElementById('fr-end').value,status:document.getElementById('fr-status').value,distributionsSummary:document.getElementById('fr-dist').value.trim(),establishmentSummary:document.getElementById('fr-estab').value.trim(),pestSummary:document.getElementById('fr-pest').value.trim(),techSummary:document.getElementById('fr-tech').value.trim(),issues:document.getElementById('fr-issues').value.trim(),actions:document.getElementById('fr-actions').value.trim(),monthlyAccomplishment:document.getElementById('fr-month-accomp').value.trim(),monthlyCoverage:document.getElementById('fr-month-coverage').value.trim(),monthlyGedsi:document.getElementById('fr-month-gedsi').value.trim(),nextMonthPlans:document.getElementById('fr-month-next').value.trim(),siteVisited:document.getElementById('fr-site-visited').value,recordsMatched:document.getElementById('fr-records-match').value,beneficiaryInterviewed:document.getElementById('fr-interviewed').value,checklistFindings:document.getElementById('fr-checklist').value.trim()};
   const eid=document.getElementById('fr-edit-id').value;
   if(eid){DB.update(DB.KEYS.FIELD_REPORTS,eid,rec);toast('Updated');}else{DB.add(DB.KEYS.FIELD_REPORTS,rec);toast('Report submitted');}
   closeModal('fr-modal');render();
