@@ -128,7 +128,7 @@ function render() {
             ${dists.length===0?'<tr><td colspan="8" style="text-align:center;color:var(--gray-400)">No records yet</td></tr>':
               dists.map(d=>`<tr>
                 <td>${fmt.date(d.distributionDate)}</td>
-                <td><strong>${d.beneficiaryName}</strong></td>
+                <td><strong>${AccessPolicy.personName(d.beneficiaryName)}</strong></td>
                 <td>${d.municipality}</td>
                 <td>${d.province}</td>
                 <td>${d.product}</td>
@@ -154,7 +154,7 @@ function render() {
           <tbody>
             ${mangos.map(m=>`<tr>
               <td>${m.municipality}</td><td>${m.province}</td>
-              <td><strong>${m.farmer}</strong></td>
+              <td><strong>${AccessPolicy.personName(m.farmer, 'Farmer/FCA withheld')}</strong></td>
               <td><span class="badge gray">${m.ageClass}</span></td>
               <td>${m.treesAssessed}</td>
               <td>${m.treesReady}</td>

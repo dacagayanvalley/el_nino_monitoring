@@ -198,7 +198,7 @@ function buildLayers() {
     const marker = L.marker(offset, { icon });
     marker.bindPopup(`
       <div class="popup-title">⚙️ ${t.type} — ${t.municipality}</div>
-      <div class="popup-row"><span>Beneficiary</span><strong>${t.beneficiary}</strong></div>
+      <div class="popup-row"><span>Beneficiary</span><strong>${AccessPolicy.personName(t.beneficiary, 'Beneficiary/FCA withheld')}</strong></div>
       <div class="popup-row"><span>Status</span><strong style="color:${color}">${t.functional?'Functional':'Non-functional'}</strong></div>
       <div class="popup-row"><span>Area Served</span><strong>${t.functional?(t.areaServed||0)+' ha':'—'}</strong></div>
       ${t.issue?`<div style="margin-top:4px;font-size:.76rem;color:#c0392b">⚠ ${t.issue}</div>`:''}
@@ -211,7 +211,7 @@ function buildLayers() {
   // ── Pest reports
   const pestGroup = L.layerGroup();
   pests.forEach(p => {
-    const coords = p.lat && p.lng ? [p.lat, p.lng] : (MUNI_COORDS[p.municipality] ? [MUNI_COORDS[p.municipality][0]+0.01, MUNI_COORDS[p.municipality][1]-0.02] : null);
+    const coords = !AccessPolicy.isPublic() && p.lat && p.lng ? [p.lat, p.lng] : (MUNI_COORDS[p.municipality] ? [MUNI_COORDS[p.municipality][0]+0.01, MUNI_COORDS[p.municipality][1]-0.02] : null);
     if (!coords) return;
     const sColor = SEV_COLOR[p.severity] || '#6b7280';
     const r = p.severity==='High'||p.severity==='Severe' ? 10 : p.severity==='Moderate' ? 7 : 5;
@@ -227,7 +227,7 @@ function buildLayers() {
       <div class="popup-row"><span>Severity</span><strong style="color:${sColor}">${p.severity}</strong></div>
       <div class="popup-row"><span>% Affected</span><strong>${p.pctAffected}%</strong></div>
       <div class="popup-row"><span>Intervention</span><strong>${p.interventionReceived?'Yes':'No — NEEDED'}</strong></div>
-      <div style="font-size:.72rem;color:#6b7280;margin-top:4px">AEW: ${p.aew}</div>
+      <div style="font-size:.72rem;color:#6b7280;margin-top:4px">AEW: ${AccessPolicy.isPublic()?'Withheld':p.aew}</div>
     `);
     if (p.severity==='High'||p.severity==='Severe') {
       marker.setStyle({ weight: 3, color: '#c0392b' });

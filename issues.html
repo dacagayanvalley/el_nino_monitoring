@@ -190,15 +190,15 @@ function render() {
         ">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
             <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:.88rem;color:var(--gray-900);line-height:1.3">${iss.description}</div>
+              <div style="font-weight:700;font-size:.88rem;color:var(--gray-900);line-height:1.3">${AccessPolicy.narrative(iss.description, 'Issue details withheld in Public view')}</div>
               <div style="font-size:.74rem;color:var(--gray-500);margin-top:4px">
                 Detected: ${fmt.date(iss.dateDetected)}
                 ${iss.category ? `&nbsp;·&nbsp;<span class="badge gray">${iss.category}</span>` : ''}
-                ${iss.responsible ? `&nbsp;·&nbsp;Responsible: <strong>${iss.responsible}</strong>` : ''}
+                ${iss.responsible ? `&nbsp;·&nbsp;Responsible: <strong>${AccessPolicy.isPublic()?'Withheld':iss.responsible}</strong>` : ''}
                 ${iss.dateResolved ? `&nbsp;·&nbsp;Resolved: ${fmt.date(iss.dateResolved)}` : ''}
               </div>
-              ${iss.action ? `<div style="margin-top:6px;font-size:.8rem;color:var(--gray-700)"><strong>Action:</strong> ${iss.action}</div>` : ''}
-              ${iss.resolutionNotes ? `<div style="margin-top:4px;font-size:.78rem;color:var(--green-800)"><strong>Resolution:</strong> ${iss.resolutionNotes}</div>` : ''}
+              ${iss.action ? `<div style="margin-top:6px;font-size:.8rem;color:var(--gray-700)"><strong>Action:</strong> ${AccessPolicy.narrative(iss.action)}</div>` : ''}
+              ${iss.resolutionNotes ? `<div style="margin-top:4px;font-size:.78rem;color:var(--green-800)"><strong>Resolution:</strong> ${AccessPolicy.narrative(iss.resolutionNotes)}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
               ${fmt.statusBadge(iss.status)}

@@ -74,7 +74,14 @@ function render() {
 
   if (filterType)     dists = dists.filter(d=>d.inputType===filterType);
   if (filterProvince) dists = dists.filter(d=>d.province===filterProvince);
-  if (searchQ)        dists = dists.filter(d=>(d.beneficiaryName+d.municipality+d.product).toLowerCase().includes(searchQ.toLowerCase()));
+  if (searchQ) {
+    dists = dists.filter(d => {
+      const publicText = `${d.municipality}${d.province}${d.product}${d.inputType}`.toLowerCase();
+      const privateText = `${d.beneficiaryName}${d.rsbsa}${d.focalPerson}`.toLowerCase();
+      const haystack = AccessPolicy.isPublic() ? publicText : `${publicText}${privateText}`;
+      return haystack.includes(searchQ.toLowerCase());
+    });
+  }
 
   const provinces = [...new Set(all.map(d=>d.province))];
   const types     = ['Seed','Planting Mat','Biofertilizer','BCA','Inorganic Fertilizer'];
@@ -91,7 +98,7 @@ function render() {
       <div class="section-header">
         <div class="section-title">Distribution Records <small>${dists.length} shown</small></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input placeholder="Search…" style="width:180px" value="${searchQ}" oninput="searchQ=this.value;render()">
+          <input placeholder="${AccessPolicy.isPublic()?'Search product / municipality...':'Search...'}" style="width:180px" value="${searchQ}" oninput="searchQ=this.value;render()">
           <select onchange="filterType=this.value;render()">
             <option value="">All Types</option>
             ${types.map(t=>`<option ${filterType===t?'selected':''}>${t}</option>`).join('')}
@@ -113,11 +120,11 @@ function render() {
                 <td>${fmt.date(d.distributionDate)}</td>
                 <td><span class="badge ${d.inputType==='BCA'?'blue':d.inputType==='Biofertilizer'?'green':'amber'}">${d.inputType}</span></td>
                 <td>${d.product}</td>
-                <td>${d.beneficiaryName}</td>
+                <td>${AccessPolicy.personName(d.beneficiaryName)}</td>
                 <td>${d.municipality}</td>
                 <td>${d.province}</td>
                 <td style="font-family:var(--font-mono)">${d.quantity} ${d.unit}</td>
-                <td style="font-size:.76rem">${d.focalPerson||'—'}</td>
+                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':(d.focalPerson||'—')}</td>
                 <td>${fmt.statusBadge(d.status)}</td>
                 <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Pending</span>'}</td>
                 <td style="white-space:nowrap">

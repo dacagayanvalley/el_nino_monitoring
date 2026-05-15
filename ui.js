@@ -55,11 +55,17 @@ const AccessPolicy = {
     admin: 'Admin',
     executive: 'Executive View',
     officer: 'Report Officer',
+    public: 'Public',
   },
   currentRole() { return localStorage.getItem('darfo2_role') || 'admin'; },
   currentUser() { return localStorage.getItem('darfo2_user') || this.roles[this.currentRole()] || 'Current user'; },
   canWrite() { return ['admin', 'officer'].includes(this.currentRole()); },
   canAdmin() { return this.currentRole() === 'admin'; },
+  isPublic() { return this.currentRole() === 'public'; },
+  privateText(label = 'Withheld') { return this.isPublic() ? label : null; },
+  personName(value, label = 'Beneficiary withheld') { return this.isPublic() ? label : (value || '—'); },
+  identifier(value, label = 'Withheld') { return this.isPublic() ? label : (value || '—'); },
+  narrative(value, label = 'Details withheld in Public view') { return this.isPublic() ? label : (value || '—'); },
   setRole(role) {
     localStorage.setItem('darfo2_role', role);
     localStorage.setItem('darfo2_user', this.roles[role] || 'Current user');
@@ -146,6 +152,7 @@ function buildSidebar(activePage) {
           <option value="admin" ${AccessPolicy.currentRole()==='admin'?'selected':''}>Admin</option>
           <option value="executive" ${AccessPolicy.currentRole()==='executive'?'selected':''}>Executive View</option>
           <option value="officer" ${AccessPolicy.currentRole()==='officer'?'selected':''}>Report Officer</option>
+          <option value="public" ${AccessPolicy.currentRole()==='public'?'selected':''}>Public</option>
         </select>
       </label>
       <button class="btn btn-secondary btn-sm sidebar-btn" onclick="openStorageSettings()">${ICONS.cloud} Google Sheet</button>
@@ -256,7 +263,7 @@ function toast(msg, type='success') {
 // ── Modal helpers ─────────────────────────────────────────────────
 function openModal(id)  {
   if (id !== 'storage-modal' && !AccessPolicy.canWrite()) {
-    toast('Executive View is read-only. Switch to Report Officer or Admin to enter data.', 'error');
+    toast('This access level is read-only. Switch to Report Officer or Admin to enter data.', 'error');
     return;
   }
   document.getElementById(id)?.classList.remove('hidden');
@@ -310,13 +317,26 @@ function resetData() {
 // ── Export CSV ────────────────────────────────────────────────────
 function exportCSV(data, filename) {
   if (!data.length) { toast('No data to export', 'error'); return; }
-  const keys = Object.keys(data[0]);
-  const csv = [keys.join(','), ...data.map(r => keys.map(k => `"${(r[k]??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const rows = AccessPolicy.isPublic() ? data.map(redactRecordForPublic) : data;
+  const keys = Object.keys(rows[0]);
+  const csv = [keys.join(','), ...rows.map(r => keys.map(k => `"${(r[k]??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = filename;
   a.click();
   toast(`Exported ${filename}`);
+}
+
+function redactRecordForPublic(record) {
+  const privateKeys = new Set([
+    'name', 'beneficiaryName', 'beneficiary', 'farmer', 'rsbsa', 'beneficiaryId',
+    'aew', 'barangay', 'lat', 'lng', 'createdBy', 'updatedBy',
+    'description', 'action', 'resolutionNotes'
+  ]);
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [
+    key,
+    privateKeys.has(key) ? 'Withheld' : value
+  ]));
 }
 
 // ── Simple bar chart (canvas-free, CSS-based) ──────────────────────

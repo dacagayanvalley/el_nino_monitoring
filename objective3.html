@@ -152,7 +152,7 @@ function render() {
               bioferts.map(b=>`<tr>
                 <td><span class="badge ${b.type==='BCA'?'blue':b.type==='Biofertilizer'?'green':'amber'}">${b.type==='Complementary Inorganic Fertilizer'?'Inorg. Fert.':b.type}</span></td>
                 <td>${b.product}</td>
-                <td>${b.beneficiaryName}</td>
+                <td>${AccessPolicy.personName(b.beneficiaryName)}</td>
                 <td>${b.municipality}</td>
                 <td>${b.qty} ${b.unit}</td>
                 <td>${fmt.date(b.distDate)}</td>
@@ -179,7 +179,7 @@ function render() {
             ${pests.length===0?'<tr><td colspan="9" style="text-align:center;color:var(--gray-400)">No pest reports yet</td></tr>':
               pests.map(p=>`<tr>
                 <td>${fmt.date(p.date)}</td>
-                <td style="font-size:.76rem">${p.aew}</td>
+                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':p.aew}</td>
                 <td>${p.municipality}</td>
                 <td>${p.crop}</td>
                 <td>${p.pestObserved||'None'}</td>

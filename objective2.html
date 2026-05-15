@@ -130,7 +130,7 @@ function render() {
               techs.map(t=>`<tr>
                 <td><span class="badge blue">${t.type}</span></td>
                 <td>${t.municipality}</td><td>${t.province}</td>
-                <td>${t.beneficiary}</td>
+                <td>${AccessPolicy.personName(t.beneficiary, 'Beneficiary/FCA withheld')}</td>
                 <td>${fmt.date(t.installDate)}</td>
                 <td>${fmt.statusBadge(t.functional?'Functional':'Non-functional')}</td>
                 <td>${t.functional?(t.areaServed+' ha'):'—'}</td>
@@ -157,7 +157,7 @@ function render() {
               <td>${t.municipality}</td><td>${t.province}</td>
               <td><strong>${t.crop}</strong> <span style="font-size:.72rem;color:var(--gray-500)">${t.variety||''}</span></td>
               <td style="font-size:.76rem">${t.pot}</td>
-              <td>${t.farmer||'—'}</td>
+              <td>${AccessPolicy.personName(t.farmer, 'Farmer/FCA withheld')}</td>
               <td><span class="badge ${t.currentStatus==='Maturity'?'green':'gray'}">${t.currentStatus}</span></td>
               <td style="font-family:var(--font-mono)">₱${Number(t.costConventional).toLocaleString()}</td>
               <td style="font-family:var(--font-mono)">₱${Number(t.costPOT).toLocaleString()}</td>

@@ -80,7 +80,7 @@ function render() {
   pests.forEach(p => { cropMap[p.crop] = (cropMap[p.crop]||0)+1; });
 
   document.getElementById('page-body').innerHTML = `
-    ${high.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>HIGH/SEVERE PEST INCIDENCE DETECTED:</strong><br>${high.map(p=>`• ${p.municipality} (${p.barangay||'N/A'}) — ${p.pestObserved}, ${p.pctAffected}% affected, crop: ${p.cropCondition}`).join('<br>')}<br><strong>Action required: BCA deployment, AEW advisory, escalate to Regulatory.</strong></div></div>`:''}
+    ${high.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>HIGH/SEVERE PEST INCIDENCE DETECTED:</strong><br>${high.map(p=>`• ${p.municipality} (${AccessPolicy.isPublic()?'Barangay withheld':(p.barangay||'N/A')}) — ${p.pestObserved}, ${p.pctAffected}% affected, crop: ${p.cropCondition}`).join('<br>')}<br><strong>Action required: BCA deployment, AEW advisory, escalate to Regulatory.</strong></div></div>`:''}
 
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile blue"><div class="kpi-label">Total Reports</div><div class="kpi-value">${pests.length}</div></div>
@@ -115,9 +115,9 @@ function render() {
             ${pests.length===0?'<tr><td colspan="13" style="text-align:center;color:var(--gray-400)">No reports yet</td></tr>':
               pests.map(p=>`<tr ${p.severity==='High'||p.severity==='Severe'?'style="background:var(--red-100)"':''}>
                 <td>${fmt.date(p.date)}</td>
-                <td style="font-size:.76rem">${p.aew}</td>
+                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':p.aew}</td>
                 <td><strong>${p.municipality}</strong></td>
-                <td style="font-size:.76rem">${p.barangay||'—'}</td>
+                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':(p.barangay||'—')}</td>
                 <td>${p.crop}</td>
                 <td style="font-size:.76rem">${p.growthStage}</td>
                 <td>${p.pestObserved||'None'}</td>
@@ -125,7 +125,7 @@ function render() {
                 <td style="font-family:var(--font-mono)">${p.pctAffected}%</td>
                 <td>${fmt.statusBadge(p.cropCondition)}</td>
                 <td>${p.interventionReceived?'<span class="badge green">Yes</span>':'<span class="badge red">No</span>'}</td>
-                <td style="font-size:.72rem;font-family:var(--font-mono)">${p.lat?`${p.lat},${p.lng}`:'—'}</td>
+                <td style="font-size:.72rem;font-family:var(--font-mono)">${AccessPolicy.isPublic()?'Withheld':(p.lat?`${p.lat},${p.lng}`:'—')}</td>
                 <td><button class="btn btn-danger btn-sm" onclick="delPest('${p.id}')">${ICONS.trash}</button></td>
               </tr>`).join('')}
           </tbody>

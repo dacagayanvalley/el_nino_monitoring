@@ -45,10 +45,20 @@
       </div>
       <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Interventions to Receive</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px" id="intervention-checks">
-        ${['Mungbean Seeds','Peanut Seeds','Watermelon Seeds','Onion Materials','Ube Materials','Mango Induction','Rain Shelter','INS-1hp','INS-2hp','INS-3hp','SPIS','Biofertilizer','BCA','POT/Zero Tillage'].map(v=>`
-          <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px">
-            <input type="checkbox" value="${v}" style="width:auto"> ${v}
-          </label>`).join('')}
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Mungbean Seeds" style="width:auto"> Mungbean Seeds</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Peanut Seeds" style="width:auto"> Peanut Seeds</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Watermelon Seeds" style="width:auto"> Watermelon Seeds</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Onion Materials" style="width:auto"> Onion Materials</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Ube Materials" style="width:auto"> Ube Materials</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Mango Induction" style="width:auto"> Mango Induction</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Rain Shelter" style="width:auto"> Rain Shelter</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="INS-1hp" style="width:auto"> INS-1hp</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="INS-2hp" style="width:auto"> INS-2hp</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="INS-3hp" style="width:auto"> INS-3hp</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="SPIS" style="width:auto"> SPIS</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="Biofertilizer" style="width:auto"> Biofertilizer</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="BCA" style="width:auto"> BCA</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.8rem;cursor:pointer;padding:4px 8px;border:1px solid var(--gray-200);border-radius:4px"><input type="checkbox" value="POT/Zero Tillage" style="width:auto"> POT/Zero Tillage</label>
       </div>
       <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:var(--gray-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">GEDSI Tags (Voluntary except Sex)</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap">
@@ -83,7 +93,14 @@ function render() {
   if (filterSex)      benes = benes.filter(b=>b.sex===filterSex);
   if (filterProvince) benes = benes.filter(b=>b.province===filterProvince);
   if (filterCrop)     benes = benes.filter(b=>b.crop===filterCrop);
-  if (searchQ)        benes = benes.filter(b=>(b.name+b.rsbsa+b.municipality).toLowerCase().includes(searchQ.toLowerCase()));
+  if (searchQ) {
+    benes = benes.filter(b => {
+      const publicText = `${b.municipality}${b.province}${b.crop}${b.fca}`.toLowerCase();
+      const privateText = `${b.name}${b.rsbsa}`.toLowerCase();
+      const haystack = AccessPolicy.isPublic() ? publicText : `${publicText}${privateText}`;
+      return haystack.includes(searchQ.toLowerCase());
+    });
+  }
 
   const provinces = [...new Set(DB.get(DB.KEYS.BENEFICIARIES).map(b=>b.province))];
   const crops     = [...new Set(DB.get(DB.KEYS.BENEFICIARIES).map(b=>b.crop))];
@@ -97,10 +114,11 @@ function render() {
     </div>
 
     <div class="card">
+      ${AccessPolicy.isPublic()?'<div class="alert-banner amber" style="margin-bottom:12px"><div><strong>Public view:</strong> beneficiary names, RSBSA numbers, individual GEDSI tags, barangays, and other personal details are withheld.</div></div>':''}
       <div class="section-header">
         <div class="section-title">Beneficiary Masterlist <small>${benes.length} records shown</small></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input placeholder="Search name / RSBSA / municipality…" style="width:220px" value="${searchQ}"
+          <input placeholder="${AccessPolicy.isPublic()?'Search municipality / crop...':'Search name / RSBSA / municipality...'}" style="width:220px" value="${searchQ}"
             oninput="searchQ=this.value;render()">
           <select onchange="filterProvince=this.value;render()">
             <option value="">All Provinces</option>
@@ -125,11 +143,11 @@ function render() {
           <tbody>
             ${benes.length===0?'<tr><td colspan="10" style="text-align:center;color:var(--gray-400)">No records match filter</td></tr>':
               benes.map(b=>`<tr>
-                <td><strong>${b.name}</strong></td>
-                <td style="font-family:var(--font-mono);font-size:.76rem">${b.rsbsa||'—'}</td>
-                <td>${fmt.gedsiChips(b)}</td>
+                <td><strong>${AccessPolicy.personName(b.name)}</strong></td>
+                <td style="font-family:var(--font-mono);font-size:.76rem">${AccessPolicy.identifier(b.rsbsa)}</td>
+                <td>${AccessPolicy.isPublic()?'Withheld':fmt.gedsiChips(b)}</td>
                 <td style="font-family:var(--font-mono)">${b.farmSize}</td>
-                <td>${b.municipality}${b.barangay?`<br><span style="font-size:.72rem;color:var(--gray-500)">Brgy. ${b.barangay}</span>`:''}</td>
+                <td>${b.municipality}${!AccessPolicy.isPublic()&&b.barangay?`<br><span style="font-size:.72rem;color:var(--gray-500)">Brgy. ${b.barangay}</span>`:''}</td>
                 <td>${b.province}</td>
                 <td>${b.crop}</td>
                 <td style="font-size:.76rem">${b.fca||'—'}</td>

@@ -106,7 +106,7 @@ function render() {
               techs.map(t=>`<tr ${!t.functional?'style="background:var(--red-100)"':''}>
                 <td><span class="badge blue">${t.type}</span></td>
                 <td>${t.municipality}</td><td>${t.province}</td>
-                <td>${t.beneficiary}</td>
+                <td>${AccessPolicy.personName(t.beneficiary, 'Beneficiary/FCA withheld')}</td>
                 <td>${fmt.date(t.installDate)}</td>
                 <td>${fmt.statusBadge(t.functional?'Functional':'Non-functional')}</td>
                 <td style="font-family:var(--font-mono)">${t.functional?(t.areaServed||0)+' ha':'—'}</td>
