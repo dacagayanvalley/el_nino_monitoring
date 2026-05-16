@@ -111,12 +111,13 @@ body {
 }
 .sidebar-logo .logo-badge {
   display: inline-flex; align-items: center; gap: 8px;
-  background: var(--green-700);
+  background: rgba(255,255,255,.96);
   border-radius: 4px;
-  padding: 6px 10px;
+  padding: 6px 9px;
   margin-bottom: 10px;
 }
-.sidebar-logo .logo-badge svg { width:20px; height:20px; flex-shrink:0; }
+.sidebar-logo .logo-badge img { width:26px; height:26px; object-fit:contain; flex-shrink:0; }
+.sidebar-logo .logo-badge span { font-size:.72rem; font-weight:800; color:var(--green-900); letter-spacing:.04em; }
 .sidebar-logo .org-name { font-size:.72rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.74); }
 .sidebar-logo .sys-title { font-size:.82rem; font-weight:800; line-height:1.25; color:#fff; margin-top:6px; text-shadow:0 1px 2px rgba(0,0,0,.35); }
 
@@ -368,6 +369,33 @@ textarea { resize:vertical; min-height:72px; }
 .modal-body  { padding:20px; }
 .modal-footer{ padding:14px 20px; border-top:1px solid var(--gray-200); display:flex; gap:8px; justify-content:flex-end; }
 .modal-close { background:none; border:none; cursor:pointer; color:var(--gray-500); font-size:1.3rem; line-height:1; padding:2px; }
+.auth-modal { max-width:520px; }
+.login-brand {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0 0 16px;
+  margin-bottom:16px;
+  border-bottom:1px solid var(--gray-200);
+}
+.login-brand img {
+  width:58px;
+  height:58px;
+  object-fit:contain;
+  flex-shrink:0;
+}
+.login-system-title {
+  color:var(--gray-900);
+  font-size:.95rem;
+  font-weight:800;
+  line-height:1.25;
+}
+.login-owner {
+  color:var(--gray-600);
+  font-size:.78rem;
+  font-weight:700;
+  margin-top:4px;
+}
 
 /* ── Stat sparkline bar (mini chart) ─────────────────────────────── */
 .mini-bar { display:flex; gap:3px; align-items:flex-end; height:40px; }
@@ -430,6 +458,8 @@ textarea { resize:vertical; min-height:72px; }
     background:rgba(0,0,0,.45);
     z-index:90;
   }
+  body.nav-open .topbar { z-index:120; }
+  body.nav-open .mobile-menu-btn { position:relative; z-index:121; }
   .main-content { margin-left:0; }
   .topbar { padding:10px 12px; flex-wrap:wrap; align-items:flex-start; gap:8px; }
   .topbar > div:first-child { min-width:0; flex:1 1 180px; }

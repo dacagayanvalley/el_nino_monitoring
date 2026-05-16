@@ -15,9 +15,6 @@
         <span class="topbar-subtitle">— Overall Implementation Progress</span>
       </div>
       <span class="topbar-badge" id="last-updated"></span>
-      <button class="btn btn-secondary btn-sm" onclick="renderAll()">
-        ${''}<span>Refresh</span>
-      </button>
     </div>
     <div class="page-body" id="page-body">
       <!-- dynamic content -->
@@ -52,7 +49,10 @@ function renderAll() {
   if (highPest.length) alerts += `<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT:</strong> ${highPest.length} high/severe pest report(s) recorded — immediate BCA deployment review needed. <a href="pest.html" style="color:inherit;font-weight:700">View Reports →</a></div></div>`;
   if (openIssues.filter(i=>i.status==='Open').length) alerts += `<div class="alert-banner amber">${ICONS.alert}<div><strong>${openIssues.filter(i=>i.status==='Open').length} open issue(s)</strong> require management action. <a href="issues.html" style="color:inherit;font-weight:700">View Issues →</a></div></div>`;
 
-  alerts += `<div class="alert-banner ${settings.syncEnabled?'green':'amber'}">${ICONS.cloud}<div><strong>Database Storage:</strong> ${settings.syncEnabled?'Google Sheet sync enabled':'Google Sheet storage not yet connected'}${settings.googleSheetUrl?` · <a href="${settings.googleSheetUrl}" target="_blank" style="color:inherit;font-weight:700">Open Sheet</a>`:''}${pendingSync?` · ${pendingSync} pending sync event(s)`:''}</div></div>`;
+  const sheetLink = settings.googleSheetUrl && !AccessPolicy.isPublic()
+    ? ` · <a href="${settings.googleSheetUrl}" target="_blank" style="color:inherit;font-weight:700">Open Sheet</a>`
+    : '';
+  alerts += `<div class="alert-banner ${settings.syncEnabled?'green':'amber'}">${ICONS.cloud}<div><strong>Database Storage:</strong> ${settings.syncEnabled?'Google Sheet sync enabled':'Google Sheet storage not yet connected'}${sheetLink}${pendingSync?` · ${pendingSync} pending sync event(s)`:''}</div></div>`;
 
   // Province breakdown
   const provinces = [...new Set(benes.map(b=>b.province))];

@@ -4,6 +4,8 @@
 
 // ── Navigation config ─────────────────────────────────────────────
 const APP_TITLE = 'iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)';
+const SYSTEM_OWNER = 'Department of Agriculture Regional Field Office 02 - PMED';
+const APP_LOGO = 'assets/da-logo.png';
 
 const NAV = [
   { group: 'Overview', items: [
@@ -181,10 +183,10 @@ function buildSidebar(activePage) {
   sidebar.innerHTML = `
     <div class="sidebar-logo">
       <div class="logo-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.9)">DA-RFO2</span>
+        <img src="${APP_LOGO}" alt="Department of Agriculture logo">
+        <span>DA-RFO2</span>
       </div>
-      <div class="org-name">Department of Agriculture Cagayan Valley</div>
+      <div class="org-name">${SYSTEM_OWNER}</div>
       <div class="sys-title">iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)</div>
     </div>
     <nav class="sidebar-nav">
@@ -229,7 +231,7 @@ function updateTopbarUtilities() {
   const tools = document.createElement('div');
   tools.className = 'topbar-tools';
   tools.innerHTML = `
-    <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileNav()" title="Menu">${ICONS.menu}</button>
+    <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileNav()" title="Toggle menu" aria-label="Toggle menu" aria-expanded="${document.body.classList.contains('nav-open')}">${ICONS.menu}</button>
     <span class="topbar-badge role-badge">${AccessPolicy.label()}</span>
     <span class="auth-action-wrap">${authActionButton()}</span>
     <button class="btn btn-secondary btn-sm theme-toggle" onclick="Theme.toggle()" title="Toggle dark mode">${Theme.current()==='dark'?ICONS.sun:ICONS.moon}</button>
@@ -250,6 +252,9 @@ function authActionButton(variant = 'topbar') {
 
 function toggleMobileNav() {
   document.body.classList.toggle('nav-open');
+  document.querySelectorAll('.mobile-menu-btn').forEach(btn => {
+    btn.setAttribute('aria-expanded', String(document.body.classList.contains('nav-open')));
+  });
 }
 
 function ensureStorageModal() {
@@ -309,6 +314,13 @@ function ensureLoginModal() {
     <div class="modal-box auth-modal">
       <div class="modal-header"><span>User Login</span><button class="modal-close" onclick="closeModal('login-modal')">x</button></div>
       <div class="modal-body">
+        <div class="login-brand">
+          <img src="${APP_LOGO}" alt="Department of Agriculture logo">
+          <div>
+            <div class="login-system-title">iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)</div>
+            <div class="login-owner">${SYSTEM_OWNER}</div>
+          </div>
+        </div>
         <div class="form-grid cols-1">
           <div class="form-group"><label class="form-label">Username</label><input id="login-username" autocomplete="username"></div>
           <div class="form-group"><label class="form-label">Password</label><input id="login-password" type="password" autocomplete="current-password"></div>
