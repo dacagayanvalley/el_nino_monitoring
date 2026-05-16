@@ -1,8 +1,8 @@
-// ═══════════════════════════════════════════════════════════════════
-//  DA-RFO2 Monitoring System — Shared UI Utilities
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
+//  DA-RFO2 Monitoring System - Shared UI Utilities
+// ===================================================================
 
-// ── Navigation config ─────────────────────────────────────────────
+// -- Navigation config ---------------------------------------------
 const APP_TITLE = 'iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)';
 const SYSTEM_OWNER = 'Department of Agriculture Regional Field Office 02 - PMED';
 const APP_LOGO = 'assets/da-logo.png';
@@ -12,9 +12,9 @@ const NAV = [
     { label:'Executive Dashboard', href:'index.html',       icon:'grid' },
   ]},
   { group: 'Objectives', items: [
-    { label:'SO1 – Planting & Mango', href:'objective1.html', icon:'seedling' },
-    { label:'SO2 – Technologies',     href:'objective2.html', icon:'wrench' },
-    { label:'SO3 – Biofert & BCAs',   href:'objective3.html', icon:'leaf' },
+    { label:'SO1 - Planting & Mango', href:'objective1.html', icon:'seedling' },
+    { label:'SO2 - Technologies',     href:'objective2.html', icon:'wrench' },
+    { label:'SO3 - Biofert & BCAs',   href:'objective3.html', icon:'leaf' },
   ]},
   { group: 'Data Entry', items: [
     { label:'Municipality Validation', href:'municipalities.html', icon:'map' },
@@ -27,6 +27,7 @@ const NAV = [
   { group: 'Analysis', items: [
     { label:'Map View',               href:'map.html',           icon:'map' },
     { label:'Issue Tracker',          href:'issues.html',        icon:'alert' },
+    { label:'Reports & Exports',      href:'reports.html',       icon:'download' },
   ]},
 ];
 
@@ -89,9 +90,9 @@ const AccessPolicy = {
   canAdmin() { return this.currentRole() === 'admin'; },
   isPublic() { return this.currentRole() === 'public'; },
   privateText(label = 'Withheld') { return this.isPublic() ? label : null; },
-  personName(value, label = 'Beneficiary withheld') { return this.isPublic() ? label : (value || '—'); },
-  identifier(value, label = 'Withheld') { return this.isPublic() ? label : (value || '—'); },
-  narrative(value, label = 'Details withheld in Public view') { return this.isPublic() ? label : (value || '—'); },
+  personName(value, label = 'Beneficiary withheld') { return this.isPublic() ? label : (value || '-'); },
+  identifier(value, label = 'Withheld') { return this.isPublic() ? label : (value || '-'); },
+  narrative(value, label = 'Details withheld in Public view') { return this.isPublic() ? label : (value || '-'); },
   login(username, password) {
     const user = this.accounts().find(account =>
       account.username.toLowerCase() === String(username || '').trim().toLowerCase()
@@ -171,7 +172,7 @@ const Theme = {
 window.Theme = Theme;
 Theme.apply();
 
-// ── Build sidebar ─────────────────────────────────────────────────
+// -- Build sidebar -------------------------------------------------
 function buildSidebar(activePage) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -214,9 +215,9 @@ function buildSidebar(activePage) {
         <span class="auth-action-wrap" data-variant="sidebar">${authActionButton('sidebar')}</span>
       </div>
       <span>DA-RFO2 | PMED</span>
-      <span>v1.0 — May 2026</span>
-      <span style="margin-top:6px">
-        <a href="#" onclick="resetData()" style="color:rgba(255,255,255,.3);font-size:.68rem;text-decoration:none">Reset demo data</a>
+      <span>v1.0 - May 2026</span>
+      <span style="margin-top:6px" data-access="admin">
+        <a href="#" onclick="resetData();return false;" style="color:rgba(255,255,255,.3);font-size:.68rem;text-decoration:none">Reset demo data</a>
       </span>
     </div>
   `;
@@ -224,7 +225,7 @@ function buildSidebar(activePage) {
   AccessPolicy.apply();
 }
 
-// ── Toast ──────────────────────────────────────────────────────────
+// -- Toast ----------------------------------------------------------
 function updateTopbarUtilities() {
   const topbar = document.querySelector('.topbar');
   if (!topbar || topbar.querySelector('.topbar-tools')) return;
@@ -276,15 +277,16 @@ function ensureStorageModal() {
           <div class="form-group"><label class="form-label">Shared Google Drive Folder URL</label><input id="set-folder" value="${settings.googleDriveFolderUrl}" placeholder="https://drive.google.com/drive/folders/..."></div>
           <div class="form-group"><label class="form-label">Google Sheet URL</label><input id="set-sheet" value="${settings.googleSheetUrl}" placeholder="Created automatically if blank"></div>
           <label style="display:flex;gap:8px;align-items:center;font-size:.82rem"><input id="set-enabled" type="checkbox" style="width:auto" ${settings.syncEnabled?'checked':''}> Enable live Google Sheet sync</label>
+          <label style="display:flex;gap:8px;align-items:center;font-size:.82rem"><input id="set-autopull" type="checkbox" style="width:auto" ${settings.autoPullEnabled?'checked':''}> Auto-pull from Google Sheet on Admin load</label>
         </div>
         <div class="sync-status" id="sync-status">${syncStatusText()}</div>
-        <div style="font-size:.74rem;color:var(--gray-500);margin-top:10px">Deploy the included google-apps-script.js in Google Apps Script, share the Drive folder with the team, then paste the Web App URL here. Pull replaces the app cache with the current Google Sheet rows.</div>
+        <div style="font-size:.74rem;color:var(--gray-500);margin-top:10px">Deploy the included google-apps-script.js in Google Apps Script, share the Drive folder with the team, then paste the Web App URL here. Pull replaces the app cache with the current Google Sheet rows. Storage settings and sync actions require Admin access.</div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('storage-modal')">Cancel</button>
-        <button class="btn btn-secondary" onclick="pullDatabaseNow()">Pull from Google Sheet</button>
-        <button class="btn btn-secondary" onclick="pushDatabaseNow()">Push All Tables</button>
-        <button class="btn btn-primary" onclick="saveStorageSettings()">Save Settings</button>
+        <button class="btn btn-secondary" data-access="admin" onclick="pullDatabaseNow()">Pull from Google Sheet</button>
+        <button class="btn btn-secondary" data-access="admin" onclick="pushDatabaseNow()">Push All Tables</button>
+        <button class="btn btn-primary" data-access="admin" onclick="saveStorageSettings()">Save Settings</button>
       </div>
     </div>
   `;
@@ -358,22 +360,32 @@ function submitLogin() {
 }
 
 function saveStorageSettings(options = {}) {
+  if (!AccessPolicy.canAdmin()) {
+    toast('Admin access is required to change storage settings.', 'error');
+    return DB.settings();
+  }
   const endpoint = document.getElementById('set-endpoint');
   const folder = document.getElementById('set-folder');
   const sheet = document.getElementById('set-sheet');
   const enabled = document.getElementById('set-enabled');
-  if (!endpoint || !folder || !sheet || !enabled) return DB.settings();
+  const autoPull = document.getElementById('set-autopull');
+  if (!endpoint || !folder || !sheet || !enabled || !autoPull) return DB.settings();
   DB.saveSettings({
     appsScriptEndpoint: endpoint.value.trim(),
     googleDriveFolderUrl: folder.value.trim(),
     googleSheetUrl: sheet.value.trim(),
     syncEnabled: enabled.checked,
+    autoPullEnabled: autoPull.checked,
   });
   toast('Google Sheet storage settings saved');
   if (options.close !== false) closeModal('storage-modal');
 }
 
 async function pushDatabaseNow(options = {}) {
+  if (!AccessPolicy.canAdmin()) {
+    toast('Admin access is required to push all tables.', 'error');
+    return;
+  }
   const closeSettings = options.closeSettings !== false;
   if (document.getElementById('set-endpoint')) {
     saveStorageSettings({ close: closeSettings });
@@ -389,12 +401,16 @@ async function pushDatabaseNow(options = {}) {
 }
 
 async function pullDatabaseNow() {
+  if (!AccessPolicy.canAdmin()) {
+    toast('Admin access is required to pull from Google Sheet.', 'error');
+    return;
+  }
   saveStorageSettings();
   const pending = DB.getSyncQueue().length;
   if (pending && !confirm(`${pending} local sync event(s) are still pending. Pulling will replace the local app cache with Google Sheet rows. Continue?`)) return;
-  const result = await DB.pullFromGoogleSheet();
+  const result = await DB.pullFromGoogleSheet({ allowEmptyTables: true });
   if (result.ok) {
-    toast('Database pulled from Google Sheet');
+    toast(`Database pulled from Google Sheet${result.skippedEmptyTabs ? ` (${result.skippedEmptyTabs} empty tab(s) skipped)` : ''}`);
     document.getElementById('sync-status') && (document.getElementById('sync-status').textContent = syncStatusText());
     refreshCurrentView();
   } else {
@@ -404,7 +420,8 @@ async function pullDatabaseNow() {
 
 async function autoPullDatabaseOnLoad() {
   const settings = DB.settings();
-  if (!settings.syncEnabled || !settings.appsScriptEndpoint || !settings.googleSheetUrl) return;
+  if (!settings.syncEnabled || !settings.autoPullEnabled || !settings.appsScriptEndpoint || !settings.googleSheetUrl) return;
+  if (!AccessPolicy.canAdmin()) return;
 
   const pending = DB.getSyncQueue().length;
   if (pending) {
@@ -412,7 +429,7 @@ async function autoPullDatabaseOnLoad() {
     if (!pushed.ok) return;
   }
 
-  const result = await DB.pullFromGoogleSheet();
+  const result = await DB.pullFromGoogleSheet({ allowEmptyTables: false });
   if (!result.ok) {
     toast(result.message || 'Google Sheet pull failed', 'error');
     return;
@@ -481,7 +498,7 @@ function compareTableCells(aCell, bCell, direction) {
 
 function parseSortableValue(text) {
   const clean = String(text).replace(/\s+/g, ' ').trim();
-  const numeric = Number(clean.replace(/[,%₱,]/g, '').replace(/^—$/, ''));
+  const numeric = Number(clean.replace(/PHP/gi, '').replace(/[,%]/g, '').replace(/^-$/, ''));
   if (clean && Number.isFinite(numeric)) return { type: 'number', value: numeric };
   const date = Date.parse(clean);
   if (clean && Number.isFinite(date)) return { type: 'number', value: date };
@@ -498,7 +515,7 @@ function toast(msg, type='success') {
   setTimeout(() => t.remove(), 3200);
 }
 
-// ── Modal helpers ─────────────────────────────────────────────────
+// -- Modal helpers -------------------------------------------------
 function openModal(id)  {
   if (!['storage-modal', 'login-modal'].includes(id) && !AccessPolicy.canWrite()) {
     toast('This access level is read-only. Switch to Report Officer or Admin to enter data.', 'error');
@@ -509,10 +526,10 @@ function openModal(id)  {
 }
 function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
 
-// ── Formatting helpers ────────────────────────────────────────────
+// -- Formatting helpers --------------------------------------------
 const fmt = {
-  date: d => d ? new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—',
-  datetime: d => d ? new Date(d).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—',
+  date: d => d ? new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '-',
+  datetime: d => d ? new Date(d).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-',
   num:  n => Number(n).toLocaleString(),
   money: n => `PHP ${Number(n || 0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   pct:  n => `${n}%`,
@@ -539,21 +556,25 @@ const fmt = {
   }
 };
 
-// ── Rate color ─────────────────────────────────────────────────────
+// -- Rate color -----------------------------------------------------
 function rateColor(pct) {
   if (pct >= 80) return 'green';
   if (pct >= 60) return 'amber';
   return 'red';
 }
 
-// ── Reset ─────────────────────────────────────────────────────────
+// -- Reset ---------------------------------------------------------
 function resetData() {
+  if (!AccessPolicy.canAdmin()) {
+    toast('Admin access is required to reset local data.', 'error');
+    return;
+  }
   if (!confirm('Reset all data to demo state?')) return;
   localStorage.clear();
   location.reload();
 }
 
-// ── Export CSV ────────────────────────────────────────────────────
+// -- Export CSV ----------------------------------------------------
 function exportCSV(data, filename) {
   if (!data.length) { toast('No data to export', 'error'); return; }
   const rows = AccessPolicy.isPublic() ? data.map(redactRecordForPublic) : data;
@@ -564,6 +585,25 @@ function exportCSV(data, filename) {
   a.download = filename;
   a.click();
   toast(`Exported ${filename}`);
+}
+
+function exportJSON(payload, filename) {
+  const body = JSON.stringify(payload, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(body);
+  a.download = filename;
+  a.click();
+  toast(`Exported ${filename}`);
+}
+
+function exportDatabaseJSON() {
+  const exportedAt = new Date().toISOString();
+  const tables = Object.entries(DB.KEYS).reduce((acc, [name, key]) => {
+    const rows = DB.get(key);
+    acc[name] = AccessPolicy.isPublic() ? rows.map(redactRecordForPublic) : rows;
+    return acc;
+  }, {});
+  exportJSON({ exportedAt, accessRole: AccessPolicy.label(), summary: DB.summary(), tables }, 'icamms_database_export.json');
 }
 
 function redactRecordForPublic(record) {
@@ -578,7 +618,7 @@ function redactRecordForPublic(record) {
   ]));
 }
 
-// ── Simple bar chart (canvas-free, CSS-based) ──────────────────────
+// -- Simple bar chart (canvas-free, CSS-based) ----------------------
 function renderBarChart(containerId, labels, values, color='var(--green-500)', maxOverride) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -597,7 +637,7 @@ function renderBarChart(containerId, labels, values, color='var(--green-500)', m
   `;
 }
 
-// ── Donut chart (SVG) ─────────────────────────────────────────────
+// -- Donut chart (SVG) ---------------------------------------------
 function renderDonut(containerId, value, total, color='var(--green-500)', label='') {
   const el = document.getElementById(containerId);
   if (!el) return;

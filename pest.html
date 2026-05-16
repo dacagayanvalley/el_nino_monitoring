@@ -1,11 +1,11 @@
-<!-- ════════════════════════════════════════════════════════
-  pest.html — Pest Surveillance (DA DOS KOLEK design)
-════════════════════════════════════════════════════════ -->
+<!-- ========================================================
+  pest.html - Pest Surveillance (DA DOS KOLEK design)
+======================================================== -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pest Surveillance — DA-RFO2</title>
+<title>Pest Surveillance - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Pest Surveillance</span>
-      <span class="topbar-subtitle">— KoboToolbox / DA DOS KOLEK Design</span>
+      <span class="topbar-subtitle">- KoboToolbox / DA DOS KOLEK Design</span>
       <span id="alert-badge" class="topbar-badge alert" style="display:none"></span>
     </div>
     <div class="page-body" id="page-body"></div>
@@ -26,7 +26,7 @@
     <div class="modal-header">Submit Pest Surveillance Report <button class="modal-close" onclick="closeModal('pest-modal')">x</button></div>
     <div class="modal-body">
       <div style="background:var(--blue-100);padding:8px 12px;border-radius:4px;font-size:.78rem;color:var(--blue-500);margin-bottom:12px">
-        📡 This form simulates KoboToolbox offline submission (DA DOS KOLEK design). GPS and photo fields are recorded.
+        KoboToolbox-style offline submission. GPS and photo fields are recorded.
       </div>
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">AEW Name<span class="req">*</span></label><input id="ps-aew" placeholder="AEW-Municipality-01"></div>
@@ -87,7 +87,7 @@ function render() {
   pests.forEach(p => { cropMap[p.crop] = (cropMap[p.crop]||0)+1; });
 
   document.getElementById('page-body').innerHTML = `
-    ${high.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>HIGH/SEVERE PEST INCIDENCE DETECTED:</strong><br>${high.map(p=>`• ${p.municipality} (${AccessPolicy.isPublic()?'Barangay withheld':(p.barangay||'N/A')}) — ${p.pestObserved}, ${p.pctAffected}% affected, crop: ${p.cropCondition}`).join('<br>')}<br><strong>Action required: BCA deployment, AEW advisory, escalate to Regulatory.</strong></div></div>`:''}
+    ${high.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>HIGH/SEVERE PEST INCIDENCE DETECTED:</strong><br>${high.map(p=>`- ${p.municipality} (${AccessPolicy.isPublic()?'Barangay withheld':(p.barangay||'N/A')}) - ${p.pestObserved}, ${p.pctAffected}% affected, crop: ${p.cropCondition}`).join('<br>')}<br><strong>Action required: BCA deployment, AEW advisory, escalate to Regulatory.</strong></div></div>`:''}
 
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile blue"><div class="kpi-label">Total Reports</div><div class="kpi-value">${pests.length}</div></div>
@@ -124,7 +124,7 @@ function render() {
                 <td>${fmt.date(p.date)}</td>
                 <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':p.aew}</td>
                 <td><strong>${p.municipality}</strong></td>
-                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':(p.barangay||'—')}</td>
+                <td style="font-size:.76rem">${AccessPolicy.isPublic()?'Withheld':(p.barangay||'-')}</td>
                 <td>${p.crop}</td>
                 <td style="font-size:.76rem">${p.growthStage}</td>
                 <td>${p.pestObserved||'None'}</td>
@@ -132,7 +132,7 @@ function render() {
                 <td style="font-family:var(--font-mono)">${p.pctAffected}%</td>
                 <td>${fmt.statusBadge(p.cropCondition)}</td>
                 <td>${p.interventionReceived?'<span class="badge green">Yes</span>':'<span class="badge red">No</span>'}</td>
-                <td style="font-size:.72rem;font-family:var(--font-mono)">${AccessPolicy.isPublic()?'Withheld':(p.lat?`${p.lat},${p.lng}`:'—')}</td>
+                <td style="font-size:.72rem;font-family:var(--font-mono)">${AccessPolicy.isPublic()?'Withheld':(p.lat?`${p.lat},${p.lng}`:'-')}</td>
                 <td><button class="btn btn-danger btn-sm" data-access="admin" onclick="delPest('${p.id}')">${ICONS.trash}</button></td>
               </tr>`).join('')}
           </tbody>
@@ -179,3 +179,4 @@ function delPest(id){if(!confirm('Delete?'))return;DB.remove(DB.KEYS.PEST,id);re
 </script>
 </body>
 </html>
+

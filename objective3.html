@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SO3 – Biofert, BCAs & Pests — DA-RFO2</title>
+<title>SO3 - Biofert, BCAs & Pests - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Specific Objective 3</span>
-      <span class="topbar-subtitle">— Biofertilizers, Complementary Fertilizers, BCAs &amp; Pest Surveillance</span>
+      <span class="topbar-subtitle">- Biofertilizers, Complementary Fertilizers, BCAs &amp; Pest Surveillance</span>
       <span class="topbar-badge">SO3 Monitor</span>
     </div>
     <div class="page-body" id="page-body"></div>
@@ -21,7 +21,7 @@
 <!-- Biofert modal -->
 <div class="modal-overlay hidden" id="biofert-modal">
   <div class="modal-box">
-    <div class="modal-header">Add Biofertilizer / BCA Distribution Record <button class="modal-close" onclick="closeModal('biofert-modal')">×</button></div>
+    <div class="modal-header">Add Biofertilizer / BCA Distribution Record <button class="modal-close" onclick="closeModal('biofert-modal')">&times;</button></div>
     <div class="modal-body">
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">Product Type<span class="req">*</span></label>
@@ -91,7 +91,7 @@ function render() {
   const sevCounts  = severities.map(s=>pests.filter(p=>p.severity===s).length);
 
   document.getElementById('page-body').innerHTML = `
-    ${highPest.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT — ${highPest.length} High/Severe Report(s):</strong> ${highPest.map(p=>`${p.municipality} (${p.pestObserved})`).join(', ')}. BCA deployment review required immediately. <a href="pest.html" style="color:inherit;font-weight:700">Open Pest Page →</a></div></div>`:''}
+    ${highPest.length?`<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT - ${highPest.length} High/Severe Report(s):</strong> ${highPest.map(p=>`${p.municipality} (${p.pestObserved})`).join(', ')}. BCA deployment review required immediately. <a href="pest.html" style="color:inherit;font-weight:700">Open Pest Page -></a></div></div>`:''}
 
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile"><div class="kpi-label">Biofertilizers Distributed</div><div class="kpi-value">${bioList.length}</div><div class="kpi-sub">${fertList.length} inorganic complement</div></div>
@@ -164,7 +164,7 @@ function render() {
                 <td>${b.applied?`<span class="badge green">Applied ${fmt.date(b.applyDate)}</span>`:'<span class="badge amber">Not yet</span>'}</td>
                 <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(b.obligatedAmount)}</td>
                 <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(b.disbursedAmount)}</td>
-                <td style="font-size:.76rem">${b.pestStatus||'—'}</td>
+                <td style="font-size:.76rem">${b.pestStatus||'-'}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -234,3 +234,4 @@ function saveBiofert() {
 </script>
 </body>
 </html>
+

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports & Exports - DA-RFO2</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Reports & Exports</span>
+      <span class="topbar-subtitle">- Management report pack and data downloads</span>
+      <span class="topbar-badge" id="report-date"></span>
+    </div>
+    <div class="page-body" id="page-body"></div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar('reports.html');
+  document.getElementById('report-date').textContent = 'Generated ' + new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+  render();
+});
+
+function render() {
+  const s = DB.summary();
+  const issues = DB.get(DB.KEYS.ISSUES);
+  const openIssues = issues.filter(i => i.status !== 'Resolved');
+  const pests = DB.get(DB.KEYS.PEST);
+  const highPest = pests.filter(p => p.severity === 'High' || p.severity === 'Severe');
+  const benes = DB.get(DB.KEYS.BENEFICIARIES);
+  const dists = DB.get(DB.KEYS.DISTRIBUTIONS);
+  const techs = DB.get(DB.KEYS.TECH);
+  const bioferts = DB.get(DB.KEYS.BIOFERT);
+  const reports = DB.get(DB.KEYS.FIELD_REPORTS);
+
+  document.getElementById('page-body').innerHTML = `
+    <div class="section-header">
+      <div class="section-title">Executive Report Pack <small>${AccessPolicy.label()} access</small></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">${ICONS.download} Print / PDF</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportDatabaseJSON()">${ICONS.download} Full JSON</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid cols-4" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Beneficiaries</div><div class="kpi-value">${s.beneficiariesCount}</div><div class="kpi-sub">${s.womenPct}% women - ${s.smallholdersCount} smallholders</div></div>
+      <div class="kpi-tile ${rateColor(s.cropEstablishmentRate)}"><div class="kpi-label">Crop Establishment</div><div class="kpi-value">${s.cropEstablishmentRate}%</div><div class="kpi-sub">${s.seedsDistributed} seed distributions</div></div>
+      <div class="kpi-tile ${openIssues.length ? 'amber' : 'green'}"><div class="kpi-label">Open Issues</div><div class="kpi-value">${openIssues.length}</div><div class="kpi-sub">${issues.filter(i=>i.status==='Resolved').length} resolved</div></div>
+      <div class="kpi-tile ${highPest.length ? 'red' : 'green'}"><div class="kpi-label">High Pest Alerts</div><div class="kpi-value">${highPest.length}</div><div class="kpi-sub">${pests.length} pest submissions</div></div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Objective Progress</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">
+          <div><div id="report-so1"></div><strong>SO1</strong><div class="kpi-sub">${s.seedsDistributed} distributions</div></div>
+          <div><div id="report-so2"></div><strong>SO2</strong><div class="kpi-sub">${s.techFunctionalityRate}% tech functional</div></div>
+          <div><div id="report-so3"></div><strong>SO3</strong><div class="kpi-sub">${s.biofertAdoptionRate}% biofert adoption</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Data Completeness</div>
+        <div id="completeness-chart"></div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Management Narrative</div>
+        <p style="font-size:.86rem;line-height:1.55;color:var(--gray-700)">
+          Implementation covers ${s.munisValidated} validated municipalities and ${s.beneficiariesCount} registered beneficiaries.
+          Current field priorities are ${openIssues.length ? `${openIssues.length} unresolved issue(s)` : 'routine monitoring'} and
+          ${highPest.length ? `${highPest.length} high/severe pest alert(s)` : 'continued pest surveillance'}.
+          Technology functionality is at ${s.techFunctionalityRate}% across ${s.techSitesCount} site(s), while financial disbursement is
+          ${s.disbursementRate}% of obligated funds.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">Export Tables</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+          ${exportButton('Municipalities', DB.KEYS.MUNICIPALITIES, 'municipalities.csv')}
+          ${exportButton('Beneficiaries', DB.KEYS.BENEFICIARIES, 'beneficiaries.csv')}
+          ${exportButton('Distributions', DB.KEYS.DISTRIBUTIONS, 'distributions.csv')}
+          ${exportButton('Field Reports', DB.KEYS.FIELD_REPORTS, 'field_reports.csv')}
+          ${exportButton('Pest Reports', DB.KEYS.PEST, 'pest_reports.csv')}
+          ${exportButton('Issues', DB.KEYS.ISSUES, 'issues.csv')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Priority Watchlist <small>${openIssues.length + highPest.length} active item(s)</small></div>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get(DB.KEYS.ISSUES),'issue_watchlist.csv')">${ICONS.download} Export Issues</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Date</th><th>Location</th><th>Description</th><th>Status</th><th>Owner</th></tr></thead>
+          <tbody>
+            ${watchRows(openIssues, highPest)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  renderDonut('report-so1', s.seedsDistributed, Math.max(s.seedsDistributed, 20), 'var(--green-500)', 'SO1');
+  renderDonut('report-so2', s.techFunctionalityRate, 100, 'var(--blue-500)', 'SO2');
+  renderDonut('report-so3', s.biofertAdoptionRate, 100, 'var(--gold-500)', 'SO3');
+  renderBarChart('completeness-chart',
+    ['Beneficiaries','Distributions','Tech','Pests','Reports','Bio/BCA'],
+    [benes.length,dists.length,techs.length,pests.length,reports.length,bioferts.length],
+    'var(--green-500)'
+  );
+}
+
+function exportButton(label, key, filename) {
+  return `<button class="btn btn-secondary btn-sm" onclick="exportCSV(DB.get('${key}'),'${filename}')">${ICONS.download} ${label}</button>`;
+}
+
+function watchRows(openIssues, highPest) {
+  const issueRows = openIssues.map(i => `
+    <tr>
+      <td><span class="badge amber">Issue</span></td>
+      <td>${fmt.date(i.dateDetected)}</td>
+      <td>-</td>
+      <td>${AccessPolicy.narrative(i.description)}</td>
+      <td>${fmt.statusBadge(i.status)}</td>
+      <td>${i.responsible || '-'}</td>
+    </tr>`);
+  const pestRows = highPest.map(p => `
+    <tr style="background:var(--red-100)">
+      <td><span class="badge red">Pest</span></td>
+      <td>${fmt.date(p.date)}</td>
+      <td>${p.municipality}</td>
+      <td>${p.crop} - ${p.pestObserved || 'None'} (${p.pctAffected || 0}% affected)</td>
+      <td>${fmt.statusBadge(p.severity)}</td>
+      <td>${AccessPolicy.isPublic() ? 'Withheld' : (p.aew || '-')}</td>
+    </tr>`);
+  const rows = [...issueRows, ...pestRows];
+  return rows.length ? rows.join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray-400)">No priority watchlist items</td></tr>';
+}
+</script>
+</body>
+</html>

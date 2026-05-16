@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SO2 – Technologies & R4D — DA-RFO2</title>
+<title>SO2 - Technologies & R4D - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Specific Objective 2</span>
-      <span class="topbar-subtitle">— Technologies, R4D &amp; Superimposed Trials</span>
+      <span class="topbar-subtitle">- Technologies, R4D &amp; Superimposed Trials</span>
       <span class="topbar-badge">SO2 Monitor</span>
     </div>
     <div class="page-body" id="page-body"></div>
@@ -21,7 +21,7 @@
 <!-- Trial modal -->
 <div class="modal-overlay hidden" id="trial-modal">
   <div class="modal-box">
-    <div class="modal-header">Add Superimposed Trial Record <button class="modal-close" onclick="closeModal('trial-modal')">×</button></div>
+    <div class="modal-header">Add Superimposed Trial Record <button class="modal-close" onclick="closeModal('trial-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">Province<span class="req">*</span></label>
@@ -36,8 +36,8 @@
         <div class="form-group"><label class="form-label">Planting Date</label><input id="tr-date" type="date"></div>
         <div class="form-group"><label class="form-label">Current Growth Stage</label>
           <select id="tr-stage"><option>Germination</option><option>Vegetative</option><option>Flowering</option><option>Pod-filling</option><option>Maturity</option></select></div>
-        <div class="form-group"><label class="form-label">Cost (Conventional ₱/ha)</label><input id="tr-cost-conv" type="number" value="5000"></div>
-        <div class="form-group"><label class="form-label">Cost (POT ₱/ha)</label><input id="tr-cost-pot" type="number" value="3000"></div>
+        <div class="form-group"><label class="form-label">Cost (Conventional PHP/ha)</label><input id="tr-cost-conv" type="number" value="5000"></div>
+        <div class="form-group"><label class="form-label">Cost (POT PHP/ha)</label><input id="tr-cost-pot" type="number" value="3000"></div>
       </div>
       <div class="form-group" style="margin-top:12px"><label class="form-label">Baseline Conditions</label>
         <textarea id="tr-baseline" placeholder="Soil type, drought level, rainfall, etc."></textarea></div>
@@ -77,11 +77,11 @@ function render() {
 
   document.getElementById('page-body').innerHTML = `
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
-      <div class="kpi-tile blue"><div class="kpi-label">Technology Sites</div><div class="kpi-value">${techs.length}</div><div class="kpi-sub">${types.map(t=>`${t}:${byType(t).length}`).join(' · ')}</div></div>
+      <div class="kpi-tile blue"><div class="kpi-label">Technology Sites</div><div class="kpi-value">${techs.length}</div><div class="kpi-sub">${types.map(t=>`${t}:${byType(t).length}`).join('  -  ')}</div></div>
       <div class="kpi-tile ${rateColor(funcRate)}"><div class="kpi-label">Functionality Rate</div><div class="kpi-value">${funcRate}%</div>
         <div style="margin-top:6px"><div class="progress-bar-wrap"><div class="progress-bar-fill ${rateColor(funcRate)}" style="width:${funcRate}%"></div></div></div></div>
       <div class="kpi-tile"><div class="kpi-label">Area Served</div><div class="kpi-value">${totalArea.toFixed(1)}</div><div class="kpi-sub">hectares (functional only)</div></div>
-      <div class="kpi-tile amber"><div class="kpi-label">Superimposed Trials</div><div class="kpi-value">${trials.length}</div><div class="kpi-sub">Avg. ₱${avgSaving.toLocaleString()}/ha savings</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">Superimposed Trials</div><div class="kpi-value">${trials.length}</div><div class="kpi-sub">Avg. PHP${avgSaving.toLocaleString()}/ha savings</div></div>
     </div>
 
     ${nonFunc>0?`<div class="alert-banner red">${ICONS.alert}<div><strong>${nonFunc} non-functional unit(s)</strong> require immediate corrective action. Check the table below for details.</div></div>`:''}
@@ -111,7 +111,7 @@ function render() {
         </div>
       </div>
       <div class="card">
-        <div class="card-title">Cost Reduction — POT vs Conventional (₱/ha)</div>
+        <div class="card-title">Cost Reduction - POT vs Conventional (PHP/ha)</div>
         <div id="cost-chart"></div>
       </div>
     </div>
@@ -133,8 +133,8 @@ function render() {
                 <td>${AccessPolicy.personName(t.beneficiary, 'Beneficiary/FCA withheld')}</td>
                 <td>${fmt.date(t.installDate)}</td>
                 <td>${fmt.statusBadge(t.functional?'Functional':'Non-functional')}</td>
-                <td>${t.functional?(t.areaServed+' ha'):'—'}</td>
-                <td style="font-size:.76rem;color:var(--red-500)">${t.issue||'—'}</td>
+                <td>${t.functional?(t.areaServed+' ha'):'-'}</td>
+                <td style="font-size:.76rem;color:var(--red-500)">${t.issue||'-'}</td>
                 <td style="font-size:.76rem">${fmt.date(t.lastCheck)}</td>
               </tr>`).join('')}
           </tbody>
@@ -151,7 +151,7 @@ function render() {
       ${trials.length===0?'<div class="empty-state"><p>No trial records yet.</p></div>':
       `<div class="table-wrap">
         <table>
-          <thead><tr><th>Municipality</th><th>Province</th><th>Crop</th><th>POT Applied</th><th>Farmer/FCA</th><th>Stage</th><th>Conv. Cost ₱/ha</th><th>POT Cost ₱/ha</th><th>Saving</th><th>Lessons</th></tr></thead>
+          <thead><tr><th>Municipality</th><th>Province</th><th>Crop</th><th>POT Applied</th><th>Farmer/FCA</th><th>Stage</th><th>Conv. Cost PHP/ha</th><th>POT Cost PHP/ha</th><th>Saving</th><th>Lessons</th></tr></thead>
           <tbody>
             ${trials.map(t=>`<tr>
               <td>${t.municipality}</td><td>${t.province}</td>
@@ -159,10 +159,10 @@ function render() {
               <td style="font-size:.76rem">${t.pot}</td>
               <td>${AccessPolicy.personName(t.farmer, 'Farmer/FCA withheld')}</td>
               <td><span class="badge ${t.currentStatus==='Maturity'?'green':'gray'}">${t.currentStatus}</span></td>
-              <td style="font-family:var(--font-mono)">₱${Number(t.costConventional).toLocaleString()}</td>
-              <td style="font-family:var(--font-mono)">₱${Number(t.costPOT).toLocaleString()}</td>
-              <td style="font-family:var(--font-mono);color:var(--green-700);font-weight:600">₱${Number(t.costConventional-t.costPOT).toLocaleString()}</td>
-              <td style="font-size:.74rem;max-width:200px">${t.lessonsNoted||'—'}</td>
+              <td style="font-family:var(--font-mono)">PHP${Number(t.costConventional).toLocaleString()}</td>
+              <td style="font-family:var(--font-mono)">PHP${Number(t.costPOT).toLocaleString()}</td>
+              <td style="font-family:var(--font-mono);color:var(--green-700);font-weight:600">PHP${Number(t.costConventional-t.costPOT).toLocaleString()}</td>
+              <td style="font-size:.74rem;max-width:200px">${t.lessonsNoted||'-'}</td>
             </tr>`).join('')}
           </tbody>
         </table>

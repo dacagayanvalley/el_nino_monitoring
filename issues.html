@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Issue Tracker — DA-RFO2</title>
+<title>Issue Tracker - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Issue Tracker</span>
-      <span class="topbar-subtitle">— Implementation Problems, Risks &amp; Corrective Actions</span>
+      <span class="topbar-subtitle">- Implementation Problems, Risks &amp; Corrective Actions</span>
     </div>
     <div class="page-body" id="page-body"></div>
   </div>
@@ -45,7 +45,7 @@
         </div>
         <div class="form-group col-span-2">
           <label class="form-label">Issue Description<span class="req">*</span></label>
-          <textarea id="is-desc" placeholder="Describe the issue clearly — what, where, who is affected…" style="min-height:80px"></textarea>
+          <textarea id="is-desc" placeholder="Describe the issue clearly - what, where, who is affected..." style="min-height:80px"></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">Person/Unit Responsible</label>
@@ -66,7 +66,7 @@
         </div>
         <div class="form-group col-span-2">
           <label class="form-label">Action Taken / Recommendation</label>
-          <textarea id="is-action" placeholder="Steps already taken or recommended corrective actions…"></textarea>
+          <textarea id="is-action" placeholder="Steps already taken or recommended corrective actions..."></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">Target Resolution Date</label>
@@ -114,7 +114,7 @@ function render() {
 
   const cats = [...new Set(all.map(i => i.category).filter(Boolean))];
 
-  // Risk log — static reference
+  // Risk log - static reference
   const risks = [
     { id:'R01', risk:'Low rainfall during growing season',        likelihood:'High',   impact:'High',   rating:'Critical', mitigation:'Drought-tolerant varieties; INS/SPIS deployment; dry season planting schedule' },
     { id:'R02', risk:'Technology unit malfunction / non-delivery', likelihood:'Medium', impact:'High',   rating:'High',     mitigation:'Functionality monitoring; PAO coordination; spare parts procurement plan' },
@@ -201,11 +201,11 @@ function render() {
               <div style="font-weight:700;font-size:.88rem;color:var(--gray-900);line-height:1.3">${AccessPolicy.narrative(iss.description, 'Issue details withheld in Public view')}</div>
               <div style="font-size:.74rem;color:var(--gray-500);margin-top:4px">
                 Detected: ${fmt.date(iss.dateDetected)}
-                ${iss.issueNo ? `&nbsp;·&nbsp;Issue No.: <strong>${iss.issueNo}</strong>` : ''}
-                ${iss.category ? `&nbsp;·&nbsp;<span class="badge gray">${iss.category}</span>` : ''}
-                ${iss.responsible ? `&nbsp;·&nbsp;Responsible: <strong>${AccessPolicy.isPublic()?'Withheld':iss.responsible}</strong>` : ''}
-                ${iss.targetResolutionDate ? `&nbsp;·&nbsp;Target: ${fmt.date(iss.targetResolutionDate)}` : ''}
-                ${iss.dateResolved ? `&nbsp;·&nbsp;Resolved: ${fmt.date(iss.dateResolved)}` : ''}
+                ${iss.issueNo ? `&nbsp; - &nbsp;Issue No.: <strong>${iss.issueNo}</strong>` : ''}
+                ${iss.category ? `&nbsp; - &nbsp;<span class="badge gray">${iss.category}</span>` : ''}
+                ${iss.responsible ? `&nbsp; - &nbsp;Responsible: <strong>${AccessPolicy.isPublic()?'Withheld':iss.responsible}</strong>` : ''}
+                ${iss.targetResolutionDate ? `&nbsp; - &nbsp;Target: ${fmt.date(iss.targetResolutionDate)}` : ''}
+                ${iss.dateResolved ? `&nbsp; - &nbsp;Resolved: ${fmt.date(iss.dateResolved)}` : ''}
               </div>
               ${iss.action ? `<div style="margin-top:6px;font-size:.8rem;color:var(--gray-700)"><strong>Action:</strong> ${AccessPolicy.narrative(iss.action)}</div>` : ''}
               ${iss.resolutionNotes ? `<div style="margin-top:4px;font-size:.78rem;color:var(--green-800)"><strong>Resolution:</strong> ${AccessPolicy.narrative(iss.resolutionNotes)}</div>` : ''}

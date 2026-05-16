@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Executive Dashboard — DA-RFO2 Monitoring</title>
+<title>Executive Dashboard - DA-RFO2 Monitoring</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
     <div class="topbar">
       <div>
         <span class="topbar-title">Executive Dashboard</span>
-        <span class="topbar-subtitle">— Overall Implementation Progress</span>
+        <span class="topbar-subtitle">- Overall Implementation Progress</span>
       </div>
       <span class="topbar-badge" id="last-updated"></span>
     </div>
@@ -46,13 +46,16 @@ function renderAll() {
 
   // Alerts
   let alerts = '';
-  if (highPest.length) alerts += `<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT:</strong> ${highPest.length} high/severe pest report(s) recorded — immediate BCA deployment review needed. <a href="pest.html" style="color:inherit;font-weight:700">View Reports →</a></div></div>`;
-  if (openIssues.filter(i=>i.status==='Open').length) alerts += `<div class="alert-banner amber">${ICONS.alert}<div><strong>${openIssues.filter(i=>i.status==='Open').length} open issue(s)</strong> require management action. <a href="issues.html" style="color:inherit;font-weight:700">View Issues →</a></div></div>`;
+  if (highPest.length) alerts += `<div class="alert-banner red">${ICONS.alert}<div><strong>PEST ALERT:</strong> ${highPest.length} high/severe pest report(s) recorded - immediate BCA deployment review needed. <a href="pest.html" style="color:inherit;font-weight:700">View Reports -></a></div></div>`;
+  if (openIssues.filter(i=>i.status==='Open').length) alerts += `<div class="alert-banner amber">${ICONS.alert}<div><strong>${openIssues.filter(i=>i.status==='Open').length} open issue(s)</strong> require management action. <a href="issues.html" style="color:inherit;font-weight:700">View Issues -></a></div></div>`;
 
   const sheetLink = settings.googleSheetUrl && !AccessPolicy.isPublic()
-    ? ` · <a href="${settings.googleSheetUrl}" target="_blank" style="color:inherit;font-weight:700">Open Sheet</a>`
+    ? `  -  <a href="${settings.googleSheetUrl}" target="_blank" style="color:inherit;font-weight:700">Open Sheet</a>`
     : '';
-  alerts += `<div class="alert-banner ${settings.syncEnabled?'green':'amber'}">${ICONS.cloud}<div><strong>Database Storage:</strong> ${settings.syncEnabled?'Google Sheet sync enabled':'Google Sheet storage not yet connected'}${sheetLink}${pendingSync?` · ${pendingSync} pending sync event(s)`:''}</div></div>`;
+  const syncLabel = settings.syncEnabled
+    ? `Google Sheet sync enabled${settings.autoPullEnabled ? ' with Admin auto-pull' : ' with manual/admin pull'}`
+    : (settings.appsScriptEndpoint ? 'Google Sheet configured; live sync is off' : 'Google Sheet storage not yet connected');
+  alerts += `<div class="alert-banner ${settings.syncEnabled?'green':'amber'}">${ICONS.cloud}<div><strong>Database Storage:</strong> ${syncLabel}${sheetLink}${pendingSync?`  -  ${pendingSync} pending sync event(s)`:''}</div></div>`;
 
   // Province breakdown
   const provinces = [...new Set(benes.map(b=>b.province))];
@@ -104,7 +107,7 @@ function renderAll() {
       </div>
     </div>
 
-    <!-- ── KPI Row 1 ── -->
+    <!-- -- KPI Row 1 -- -->
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile">
         <div class="kpi-label">Municipalities Validated</div>
@@ -133,7 +136,7 @@ function renderAll() {
       </div>
     </div>
 
-    <!-- ── KPI Row 2 ── -->
+    <!-- -- KPI Row 2 -- -->
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile amber">
         <div class="kpi-label">Seeds Distributed</div>
@@ -148,7 +151,7 @@ function renderAll() {
       <div class="kpi-tile blue">
         <div class="kpi-label">Technology Sites</div>
         <div class="kpi-value">${s.techSitesCount}</div>
-        <div class="kpi-sub">${s.techFunctionalityRate}% functional · ${s.areaServedHa} ha served</div>
+        <div class="kpi-sub">${s.techFunctionalityRate}% functional  -  ${s.areaServedHa} ha served</div>
       </div>
       <div class="kpi-tile blue">
         <div class="kpi-label">Pest Reports (KoboToolbox)</div>
@@ -157,7 +160,7 @@ function renderAll() {
       </div>
     </div>
 
-    <!-- ── KPI Row 3 ── -->
+    <!-- -- KPI Row 3 -- -->
     <div class="kpi-grid cols-4" style="margin-bottom:20px">
       <div class="kpi-tile">
         <div class="kpi-label">Biofertilizer Adoption</div>
@@ -172,7 +175,7 @@ function renderAll() {
       <div class="kpi-tile">
         <div class="kpi-label">Women Beneficiaries</div>
         <div class="kpi-value">${s.womenCount}</div>
-        <div class="kpi-sub">${s.womenPct}% of total — GEDSI</div>
+        <div class="kpi-sub">${s.womenPct}% of total - GEDSI</div>
       </div>
       <div class="kpi-tile ${openIssues.length > 2 ? 'red' : openIssues.length > 0 ? 'amber' : ''}">
         <div class="kpi-label">Open Issues</div>
@@ -218,7 +221,7 @@ function renderAll() {
       </div>
     </div>
 
-    <!-- ── Charts + Table Row ── -->
+    <!-- -- Charts + Table Row -- -->
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">Distributions by Crop/Input Type</div>
@@ -230,38 +233,38 @@ function renderAll() {
       </div>
     </div>
 
-    <!-- ── Objective Progress ── -->
+    <!-- -- Objective Progress -- -->
     <div class="card" style="margin-bottom:16px">
       <div class="card-title">Objective Progress Summary</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
         <div style="text-align:center">
           <div id="donut-so1"></div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO1 — Planting & Mango</div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO1 - Planting & Mango</div>
           <div style="font-size:.72rem;color:var(--gray-500)">${s.seedsDistributed} distributions, ${s.mangoTreesTreated} trees treated</div>
         </div>
         <div style="text-align:center">
           <div id="donut-so2"></div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO2 — Technologies & R4D</div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO2 - Technologies & R4D</div>
           <div style="font-size:.72rem;color:var(--gray-500)">${s.techSitesCount} sites, ${s.techFunctionalityRate}% functional</div>
         </div>
         <div style="text-align:center">
           <div id="donut-so3"></div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO3 — Biofert, BCAs & Pests</div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-700);margin-top:6px">SO3 - Biofert, BCAs & Pests</div>
           <div style="font-size:.72rem;color:var(--gray-500)">${s.bioDistributed+s.bcaDistributed} inputs distributed</div>
         </div>
       </div>
     </div>
 
-    <!-- ── Province Breakdown Table ── -->
+    <!-- -- Province Breakdown Table -- -->
     <div class="grid-2">
       <div class="card">
         <div class="section-header">
           <div class="section-title">Beneficiary Coverage by Province</div>
-          <a href="beneficiaries.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">View All →</a>
+          <a href="beneficiaries.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">View All -></a>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Province</th><th>Munis</th><th>Beneficiaries</th><th>Women</th><th>≤0.5 ha</th><th>Status</th></tr></thead>
+            <thead><tr><th>Province</th><th>Munis</th><th>Beneficiaries</th><th>Women</th><th><=0.5 ha</th><th>Status</th></tr></thead>
             <tbody>${provRows}</tbody>
           </table>
         </div>
@@ -270,29 +273,29 @@ function renderAll() {
       <div class="card">
         <div class="section-header">
           <div class="section-title">Open Issues</div>
-          <a href="issues.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">All Issues →</a>
+          <a href="issues.html" style="font-size:.78rem;color:var(--green-700);text-decoration:none;font-weight:600">All Issues -></a>
         </div>
         ${openIssues.length === 0
-          ? `<div class="empty-state"><p>No open issues 🎉</p></div>`
+          ? `<div class="empty-state"><p>No open issues</p></div>`
           : openIssues.map(iss => `
           <div style="border-left:3px solid ${iss.status==='Open'?'var(--red-500)':'var(--gold-500)'};padding:8px 10px;margin-bottom:8px;background:var(--gray-50);border-radius:0 4px 4px 0">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <span style="font-size:.8rem;font-weight:600;color:var(--gray-800)">${iss.description.substring(0,70)}${iss.description.length>70?'…':''}</span>
+              <span style="font-size:.8rem;font-weight:600;color:var(--gray-800)">${iss.description.substring(0,70)}${iss.description.length>70?'...':''}</span>
               ${fmt.statusBadge(iss.status)}
             </div>
-            <div style="font-size:.72rem;color:var(--gray-500);margin-top:3px">${fmt.date(iss.dateDetected)} · ${iss.responsible}</div>
+            <div style="font-size:.72rem;color:var(--gray-500);margin-top:3px">${fmt.date(iss.dateDetected)}  -  ${iss.responsible}</div>
           </div>`).join('')
         }
       </div>
     </div>
 
-    <!-- ── GEDSI Summary ── -->
+    <!-- -- GEDSI Summary -- -->
     <div class="card" style="margin-top:16px">
-      <div class="card-title">GEDSI Summary — Beneficiary Disaggregation</div>
+      <div class="card-title">GEDSI Summary - Beneficiary Disaggregation</div>
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         ${[
           ['Women',s.womenCount,s.beneficiariesCount,'#be185d','w'],
-          ['Smallholders (≤0.5 ha)',s.smallholdersCount,s.beneficiariesCount,'#15803d','gi'],
+          ['Smallholders (<=0.5 ha)',s.smallholdersCount,s.beneficiariesCount,'#15803d','gi'],
           ['Senior (60+)',benes.filter(b=>b.ageGroup==='60+').length,s.beneficiariesCount,'#92400e','sr'],
           ['Youth (18-35)',benes.filter(b=>b.ageGroup==='18-35').length,s.beneficiariesCount,'#0369a1','yt'],
           ['IP',benes.filter(b=>b.ip).length,s.beneficiariesCount,'#6d28d9','ip'],

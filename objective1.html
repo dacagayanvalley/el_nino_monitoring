@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SO1 – Planting Materials & Mango — DA-RFO2</title>
+<title>SO1 - Planting Materials & Mango - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
     <div class="topbar">
       <div>
         <span class="topbar-title">Specific Objective 1</span>
-        <span class="topbar-subtitle">— Planting Materials &amp; Mango Flowering Induction</span>
+        <span class="topbar-subtitle">- Planting Materials &amp; Mango Flowering Induction</span>
       </div>
       <span class="topbar-badge">SO1 Monitor</span>
     </div>
@@ -23,7 +23,7 @@
 <!-- Mango modal -->
 <div class="modal-overlay hidden" id="mango-modal">
   <div class="modal-box">
-    <div class="modal-header">Add Mango Induction Record <button class="modal-close" onclick="closeModal('mango-modal')">×</button></div>
+    <div class="modal-header">Add Mango Induction Record <button class="modal-close" onclick="closeModal('mango-modal')">x</button></div>
     <div class="modal-body">
       <div class="form-grid cols-2">
         <div class="form-group"><label class="form-label">Province<span class="req">*</span></label>
@@ -104,8 +104,8 @@ function render() {
 
     <!-- Establishment breakdown -->
     <div class="kpi-grid cols-3" style="margin-bottom:16px">
-      <div class="kpi-tile"><div class="kpi-label">Good Establishment</div><div class="kpi-value" style="color:var(--green-700)">${good}</div><div class="kpi-sub">plots with ≥80% stand</div></div>
-      <div class="kpi-tile amber"><div class="kpi-label">Fair Establishment</div><div class="kpi-value" style="color:var(--gold-500)">${fair}</div><div class="kpi-sub">plots 50–79% stand</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Good Establishment</div><div class="kpi-value" style="color:var(--green-700)">${good}</div><div class="kpi-sub">plots with >=80% stand</div></div>
+      <div class="kpi-tile amber"><div class="kpi-label">Fair Establishment</div><div class="kpi-value" style="color:var(--gold-500)">${fair}</div><div class="kpi-sub">plots 50-79% stand</div></div>
       <div class="kpi-tile red"><div class="kpi-label">Poor Establishment</div><div class="kpi-value" style="color:var(--red-500)">${poor}</div><div class="kpi-sub">plots below 50% stand</div></div>
     </div>
 
@@ -142,7 +142,7 @@ function render() {
                 <td>${d.province}</td>
                 <td>${d.product}</td>
                 <td>${d.quantity} ${d.unit}</td>
-                <td style="font-size:.76rem">${d.focalPerson||'—'}</td>
+                <td style="font-size:.76rem">${d.focalPerson||'-'}</td>
                 <td>${d.establishment?fmt.statusBadge(d.establishment):'<span class="badge gray">Not yet visited</span>'}</td>
               </tr>`).join('')}
           </tbody>
@@ -179,8 +179,8 @@ function render() {
         </table>
       </div>`}
       <div style="margin-top:10px;padding:8px;background:var(--green-50);border-radius:4px;font-size:.76rem;color:var(--green-800)">
-        <strong>Technical Note:</strong> Century-old trees: 2 drums/tree. 10–15 yr: 15 trees/drum. 16–30 yr: 7 trees/drum.
-        Inducer: 2kg KNO₃ + 4kg Ca(NO₃)₂, or CaNO₃ alternative (6kg). Apply only to trees with matured deep green leaves.
+        <strong>Technical Note:</strong> Century-old trees: 2 drums/tree. 10-15 yr: 15 trees/drum. 16-30 yr: 7 trees/drum.
+        Inducer: 2kg KNO3 + 4kg Ca(NO3)2, or CaNO3 alternative (6kg). Apply only to trees with matured deep green leaves.
         Source: Ibarra et al. 2025.
       </div>
     </div>

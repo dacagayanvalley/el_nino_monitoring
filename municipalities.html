@@ -123,12 +123,12 @@ function render() {
                 <td>${fmt.date(r.validationDate)}</td>
                 <td><strong>${r.municipality}</strong></td>
                 <td>${r.province}</td>
-                <td>${r.pagasaStatus||'—'}</td>
+                <td>${r.pagasaStatus||'-'}</td>
                 <td>${fmt.statusBadge(r.crvaRisk||r.riskLevel||'For validation')}</td>
                 <td>${fmt.statusBadge(r.validationResult||((r.confirmed)?'Confirmed':'For revalidation'))}</td>
-                <td style="font-size:.75rem;max-width:170px">${(r.crops||[]).join(', ')||'—'}</td>
-                <td style="font-size:.75rem;max-width:190px">${(r.tech||[]).join(', ')||'—'}</td>
-                <td>${AccessPolicy.isPublic()?'Withheld':(r.validatedBy||'—')}</td>
+                <td style="font-size:.75rem;max-width:170px">${(r.crops||[]).join(', ')||'-'}</td>
+                <td style="font-size:.75rem;max-width:190px">${(r.tech||[]).join(', ')||'-'}</td>
+                <td>${AccessPolicy.isPublic()?'Withheld':(r.validatedBy||'-')}</td>
                 <td style="white-space:nowrap">
                   <button class="btn btn-secondary btn-sm" data-access="write" onclick="editMunicipality('${r.id}')">${ICONS.edit}</button>
                   <button class="btn btn-danger btn-sm" data-access="admin" onclick="deleteMunicipality('${r.id}')">${ICONS.trash}</button>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Beneficiary Registry — DA-RFO2</title>
+<title>Beneficiary Registry - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Beneficiary Registry</span>
-      <span class="topbar-subtitle">— Validated Farmer Beneficiaries</span>
+      <span class="topbar-subtitle">- Validated Farmer Beneficiaries</span>
     </div>
     <div class="page-body" id="page-body"></div>
   </div>
@@ -118,8 +118,8 @@ function render() {
   document.getElementById('page-body').innerHTML = `
     <div class="kpi-grid cols-4" style="margin-bottom:16px">
       <div class="kpi-tile"><div class="kpi-label">Total Beneficiaries</div><div class="kpi-value">${total}</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Women Farmers</div><div class="kpi-value">${women}</div><div class="kpi-sub">${total>0?Math.round(women/total*100):0}% — GEDSI</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Smallholders ≤0.5 ha</div><div class="kpi-value">${small}</div><div class="kpi-sub">${total>0?Math.round(small/total*100):0}% targeting compliance</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Women Farmers</div><div class="kpi-value">${women}</div><div class="kpi-sub">${total>0?Math.round(women/total*100):0}% - GEDSI</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Smallholders <=0.5 ha</div><div class="kpi-value">${small}</div><div class="kpi-sub">${total>0?Math.round(small/total*100):0}% targeting compliance</div></div>
       <div class="kpi-tile amber"><div class="kpi-label">Filtered Results</div><div class="kpi-value">${benes.length}</div><div class="kpi-sub">of ${total} records</div></div>
     </div>
 
@@ -160,8 +160,8 @@ function render() {
                 <td>${b.municipality}${!AccessPolicy.isPublic()&&b.barangay?`<br><span style="font-size:.72rem;color:var(--gray-500)">Brgy. ${b.barangay}</span>`:''}</td>
                 <td>${b.province}</td>
                 <td>${b.crop}</td>
-                <td style="font-size:.76rem">${b.fca||'—'}</td>
-                <td style="font-size:.72rem;max-width:180px">${(b.interventions||[]).join(', ')||'—'}</td>
+                <td style="font-size:.76rem">${b.fca||'-'}</td>
+                <td style="font-size:.72rem;max-width:180px">${(b.interventions||[]).join(', ')||'-'}</td>
                 <td style="white-space:nowrap">
                   <button class="btn btn-secondary btn-sm" data-access="write" onclick="editBeneficiary('${b.id}')" style="margin-right:4px">${ICONS.edit}</button>
                   <button class="btn btn-danger btn-sm" data-access="admin" onclick="deleteBene('${b.id}')">${ICONS.trash}</button>
@@ -235,7 +235,7 @@ function saveBeneficiary() {
   if (!name) { toast('Name is required','error'); return; }
   if (!farmSize) { toast('Farm size is required','error'); return; }
   if (farmSize > 0.5) {
-    if (!confirm(`Farm size is ${farmSize} ha — exceeds 0.5 ha priority threshold. Include anyway?`)) return;
+    if (!confirm(`Farm size is ${farmSize} ha - exceeds 0.5 ha priority threshold. Include anyway?`)) return;
   }
   const interventions = [...document.querySelectorAll('#intervention-checks input:checked')].map(c=>c.value);
   const ipStatus = document.getElementById('b-ip-status').value;

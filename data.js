@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════
-//  DA-RFO2 Monitoring System — Data Layer (localStorage-based)
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
+//  DA-RFO2 Monitoring System - Data Layer (localStorage-based)
+// ===================================================================
 
 const EMBEDDED_GOOGLE_SHEET_CONFIG = {
   appsScriptEndpoint: 'https://script.google.com/macros/s/AKfycbxjAEu4CsmkwptWb_ZIlZOwvrLdvsLd4LiPJsFLm_s-mvI5Lcz23XD7fMHAxIZUmE9pFg/exec',
@@ -9,7 +9,7 @@ const EMBEDDED_GOOGLE_SHEET_CONFIG = {
 };
 
 const DB = {
-  // ── Keys ──────────────────────────────────────────────────────────
+  // -- Keys ----------------------------------------------------------
   KEYS: {
     MUNICIPALITIES: 'darfo2_municipalities',
     BENEFICIARIES:  'darfo2_beneficiaries',
@@ -33,6 +33,7 @@ const DB = {
     googleDriveFolderUrl: '',
     appsScriptEndpoint: '',
     syncEnabled: false,
+    autoPullEnabled: false,
   },
 
   embeddedSettings() {
@@ -41,7 +42,8 @@ const DB = {
     if (cfg.appsScriptEndpoint) settings.appsScriptEndpoint = cfg.appsScriptEndpoint;
     if (cfg.googleSheetUrl) settings.googleSheetUrl = cfg.googleSheetUrl;
     if (cfg.googleDriveFolderUrl) settings.googleDriveFolderUrl = cfg.googleDriveFolderUrl;
-    if (settings.appsScriptEndpoint) settings.syncEnabled = true;
+    if (typeof cfg.syncEnabled === 'boolean') settings.syncEnabled = cfg.syncEnabled;
+    if (typeof cfg.autoPullEnabled === 'boolean') settings.autoPullEnabled = cfg.autoPullEnabled;
     return settings;
   },
 
@@ -49,14 +51,10 @@ const DB = {
     try {
       const saved = JSON.parse(localStorage.getItem(this.SETTINGS_KEY) || '{}');
       const embedded = this.embeddedSettings();
-      const settings = { ...this.defaultSettings, ...saved, ...embedded };
-      if (settings.appsScriptEndpoint) settings.syncEnabled = true;
-      return settings;
+      return { ...this.defaultSettings, ...embedded, ...saved };
     }
     catch {
-      const settings = { ...this.defaultSettings, ...this.embeddedSettings() };
-      if (settings.appsScriptEndpoint) settings.syncEnabled = true;
-      return settings;
+      return { ...this.defaultSettings, ...this.embeddedSettings() };
     }
   },
 
@@ -154,8 +152,9 @@ const DB = {
     }
   },
 
-  // ── CRUD helpers ──────────────────────────────────────────────────
-  async pullFromGoogleSheet() {
+  // -- CRUD helpers --------------------------------------------------
+  async pullFromGoogleSheet(options = {}) {
+    const allowEmptyTables = options.allowEmptyTables === true;
     const settings = this.settings();
     if (!settings.appsScriptEndpoint) return { ok: false, message: 'Paste the Google Apps Script Web App URL first.' };
     if (!settings.googleSheetUrl) return { ok: false, message: 'Paste the Google Sheet URL before pulling records.' };
@@ -177,6 +176,7 @@ const DB = {
         return acc;
       }, {});
       let matchedTabs = 0;
+      let skippedEmptyTabs = 0;
       Object.entries(this.KEYS).forEach(([name, key]) => {
         const candidates = [
           this.tableNameFromKey(key),
@@ -189,7 +189,12 @@ const DB = {
           .filter(candidate => Array.isArray(normalizedTables[candidate]))
           .map(candidate => normalizedTables[candidate]);
         if (!matchedRows.length) return;
-        this.set(key, this.mergeRowsById(matchedRows));
+        const mergedRows = this.mergeRowsById(matchedRows);
+        if (!allowEmptyTables && !mergedRows.length && this.get(key).length) {
+          skippedEmptyTabs += 1;
+          return;
+        }
+        this.set(key, mergedRows);
         matchedTabs += matchedRows.length;
       });
       if (!matchedTabs && Object.keys(tables).length) {
@@ -200,7 +205,7 @@ const DB = {
       localStorage.removeItem(this.SYNC_QUEUE_KEY);
       localStorage.setItem('darfo2_last_google_sync', this.now());
       localStorage.removeItem('darfo2_last_sync_error');
-      return { ok: true, result };
+      return { ok: true, result, matchedTabs, skippedEmptyTabs };
     } catch (err) {
       localStorage.setItem('darfo2_last_sync_error', `${this.now()} ${err.message}`);
       return { ok: false, message: err.message };
@@ -350,7 +355,7 @@ const DB = {
     });
   },
 
-  // ── Seed demo data ─────────────────────────────────────────────────
+  // -- Seed demo data -------------------------------------------------
   seed() {
     if (localStorage.getItem('darfo2_seeded')) return;
 
@@ -463,17 +468,17 @@ const DB = {
 
     // Field reports
     const reports = [
-      { id:'fr1', aew:'AEW-Cauayan-01', province:'Isabela', municipality:'Cauayan City', periodStart:'2026-05-26', periodEnd:'2026-06-01', distributionsSummary:'12 beneficiaries received mungbean seeds; 3 received biofertilizer', establishmentSummary:'8 plots visited; 7 Good, 1 Fair establishment', pestSummary:'Low aphid incidence in 2 plots; no action needed', techSummary:'INS-2hp functional, Rain Shelter functional', issues:'Road to Barangay Dammang flooded for 2 days — 2 farms not visited', actions:'Will visit missed farms this week', status:'Submitted', createdAt:'2026-06-01' },
+      { id:'fr1', aew:'AEW-Cauayan-01', province:'Isabela', municipality:'Cauayan City', periodStart:'2026-05-26', periodEnd:'2026-06-01', distributionsSummary:'12 beneficiaries received mungbean seeds; 3 received biofertilizer', establishmentSummary:'8 plots visited; 7 Good, 1 Fair establishment', pestSummary:'Low aphid incidence in 2 plots; no action needed', techSummary:'INS-2hp functional, Rain Shelter functional', issues:'Road to Barangay Dammang flooded for 2 days - 2 farms not visited', actions:'Will visit missed farms this week', status:'Submitted', createdAt:'2026-06-01' },
       { id:'fr2', aew:'AEW-Ilagan-01',  province:'Isabela', municipality:'Ilagan City',  periodStart:'2026-05-26', periodEnd:'2026-06-01', distributionsSummary:'8 beneficiaries received mungbean seeds; 2 received ube materials', establishmentSummary:'6 plots visited; all Good establishment', pestSummary:'Low thrips observed in 1 plot; advisory given', techSummary:'INS-1hp functional; SPIS operational', issues:'None', actions:'Continue regular monitoring', status:'Submitted', createdAt:'2026-06-01' },
-      { id:'fr3', aew:'AEW-Aparri-01',  province:'Cagayan', municipality:'Aparri',       periodStart:'2026-05-26', periodEnd:'2026-06-01', distributionsSummary:'5 beneficiaries received mungbean seeds', establishmentSummary:'3 plots visited; 2 Good, 1 Poor (replanting recommended)', pestSummary:'HIGH: Damping off detected in 1 plot — 25% affected; BCA deployment requested', techSummary:'No technology installed in this municipality yet', issues:'Damping off outbreak in Brgy. Poblacion requires urgent BCA deployment', actions:'Requested BCA deployment from Regulatory; filed pest report', status:'Submitted', createdAt:'2026-06-02' },
+      { id:'fr3', aew:'AEW-Aparri-01',  province:'Cagayan', municipality:'Aparri',       periodStart:'2026-05-26', periodEnd:'2026-06-01', distributionsSummary:'5 beneficiaries received mungbean seeds', establishmentSummary:'3 plots visited; 2 Good, 1 Poor (replanting recommended)', pestSummary:'HIGH: Damping off detected in 1 plot - 25% affected; BCA deployment requested', techSummary:'No technology installed in this municipality yet', issues:'Damping off outbreak in Brgy. Poblacion requires urgent BCA deployment', actions:'Requested BCA deployment from Regulatory; filed pest report', status:'Submitted', createdAt:'2026-06-02' },
     ];
     this.set(this.KEYS.FIELD_REPORTS, reports);
 
     // Issues
     const issues = [
       { id:'is1', dateDetected:'2026-05-30', description:'INS-3hp unit in Tumauini non-functional due to broken pump seal', responsible:'RAED / PAO-Isabela', status:'In Progress', action:'Procurement of spare part initiated; expected repair June 10', dateResolved:'', createdAt:'2026-05-30' },
-      { id:'is2', dateDetected:'2026-06-01', description:'INS-1hp in Lallo has insufficient water source — pump not operational', responsible:'RAED', status:'Open', action:'Site re-validation being conducted for alternative water source', dateResolved:'', createdAt:'2026-06-01' },
-      { id:'is3', dateDetected:'2026-06-02', description:'High damping off incidence (25%) in Aparri Brgy. Poblacion — BCA deployment needed urgently', responsible:'Regulatory / PAO-Cagayan', status:'Open', action:'BCA deployment order raised; AEW notified', dateResolved:'', createdAt:'2026-06-02' },
+      { id:'is2', dateDetected:'2026-06-01', description:'INS-1hp in Lallo has insufficient water source - pump not operational', responsible:'RAED', status:'Open', action:'Site re-validation being conducted for alternative water source', dateResolved:'', createdAt:'2026-06-01' },
+      { id:'is3', dateDetected:'2026-06-02', description:'High damping off incidence (25%) in Aparri Brgy. Poblacion - BCA deployment needed urgently', responsible:'Regulatory / PAO-Cagayan', status:'Open', action:'BCA deployment order raised; AEW notified', dateResolved:'', createdAt:'2026-06-02' },
       { id:'is4', dateDetected:'2026-05-25', description:'Biofertilizer not yet applied by Marcelo Pascual (Bayombong) 10 days after distribution', responsible:'AEW-Bayombong-01', status:'In Progress', action:'Follow-up visit scheduled; extension advisory to be provided', dateResolved:'', createdAt:'2026-05-25' },
     ];
     this.set(this.KEYS.ISSUES, issues);
@@ -493,7 +498,7 @@ const DB = {
     console.log('Demo data seeded.');
   },
 
-  // ── Computed summaries ─────────────────────────────────────────────
+  // -- Computed summaries ---------------------------------------------
   summary() {
     const munis = this.get(this.KEYS.MUNICIPALITIES);
     const benes = this.get(this.KEYS.BENEFICIARIES);

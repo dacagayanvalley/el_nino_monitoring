@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Technology Monitoring — DA-RFO2</title>
+<title>Technology Monitoring - DA-RFO2</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="main-content">
     <div class="topbar">
       <span class="topbar-title">Technology Monitoring</span>
-      <span class="topbar-subtitle">— Rain Shelters, INS, SPIS &amp; Mechanization</span>
+      <span class="topbar-subtitle">- Rain Shelters, INS, SPIS &amp; Mechanization</span>
     </div>
     <div class="page-body" id="page-body"></div>
   </div>
@@ -31,7 +31,7 @@
         <div class="form-group"><label class="form-label">Beneficiary / FCA<span class="req">*</span></label><input id="t-bene"></div>
         <div class="form-group"><label class="form-label">Installation Date</label><input id="t-date" type="date"></div>
         <div class="form-group"><label class="form-label">Functional?</label>
-          <select id="t-func"><option value="true">Yes — Functional</option><option value="false">No — Non-functional</option></select></div>
+          <select id="t-func"><option value="true">Yes - Functional</option><option value="false">No - Non-functional</option></select></div>
         <div class="form-group"><label class="form-label">Area Served (ha)</label><input id="t-area" type="number" step="0.1" value="0"></div>
         <div class="form-group"><label class="form-label">Last Check Date</label><input id="t-lastcheck" type="date"></div>
         <div class="form-group"><label class="form-label">GPS Lat</label><input id="t-lat" type="number" step="0.0001"></div>
@@ -85,7 +85,7 @@ function render() {
       <div class="kpi-tile red"><div class="kpi-label">Non-Functional</div><div class="kpi-value">${nonFunc}</div><div class="kpi-sub">Require action</div></div>
       <div class="kpi-tile"><div class="kpi-label">Disbursed</div><div class="kpi-value" style="font-size:1.15rem">${fmt.money(disbursed)}</div><div class="kpi-sub">${fmt.money(obligated)} obligated</div></div>
     </div>
-    ${nonFunc>0?`<div class="alert-banner red">${ICONS.alert}<div><strong>${nonFunc} non-functional unit(s)</strong>: ${techs.filter(t=>!t.functional).map(t=>`${t.type} in ${t.municipality} — ${t.issue||'No reason given'}`).join('; ')}</div></div>`:''}
+    ${nonFunc>0?`<div class="alert-banner red">${ICONS.alert}<div><strong>${nonFunc} non-functional unit(s)</strong>: ${techs.filter(t=>!t.functional).map(t=>`${t.type} in ${t.municipality} - ${t.issue||'No reason given'}`).join('; ')}</div></div>`:''}
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">Units by Technology Type</div>
@@ -122,7 +122,7 @@ function render() {
                 <td>${AccessPolicy.personName(t.beneficiary, 'Beneficiary/FCA withheld')}</td>
                 <td>${fmt.date(t.installDate)}</td>
                 <td>${fmt.statusBadge(t.functional?'Functional':'Non-functional')}</td>
-                <td style="font-family:var(--font-mono)">${t.functional?(t.areaServed||0)+' ha':'—'}</td>
+                <td style="font-family:var(--font-mono)">${t.functional?(t.areaServed||0)+' ha':'-'}</td>
                 <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(t.obligatedAmount)}</td>
                 <td style="font-family:var(--font-mono);font-size:.76rem">${fmt.money(t.disbursedAmount)}</td>
                 <td style="white-space:nowrap">
