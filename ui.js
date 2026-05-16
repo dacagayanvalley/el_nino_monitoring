@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ── Navigation config ─────────────────────────────────────────────
-const APP_TITLE = 'Department of Agriculture Cagayan Valley - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)';
+const APP_TITLE = 'iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)';
 
 const NAV = [
   { group: 'Overview', items: [
@@ -54,14 +54,35 @@ const ICONS = {
 };
 
 const AccessPolicy = {
+  ACCOUNTS_KEY: 'darfo2_user_accounts',
+  SESSION_KEY: 'darfo2_login_session',
   roles: {
     admin: 'Admin',
     executive: 'Executive View',
     officer: 'Report Officer',
     public: 'Public',
   },
-  currentRole() { return localStorage.getItem('darfo2_role') || 'admin'; },
-  currentUser() { return localStorage.getItem('darfo2_user') || this.roles[this.currentRole()] || 'Current user'; },
+  defaultAccounts: [
+    { username: 'admin', password: 'admin123', displayName: 'System Administrator', role: 'admin' },
+    { username: 'officer', password: 'officer123', displayName: 'Report Officer', role: 'officer' },
+    { username: 'executive', password: 'view123', displayName: 'Executive Viewer', role: 'executive' },
+    { username: 'public', password: 'public', displayName: 'Public Viewer', role: 'public' },
+  ],
+  accounts() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.ACCOUNTS_KEY) || '[]');
+      return saved.length ? saved : this.defaultAccounts;
+    } catch {
+      return this.defaultAccounts;
+    }
+  },
+  session() {
+    try { return JSON.parse(localStorage.getItem(this.SESSION_KEY) || 'null'); }
+    catch { return null; }
+  },
+  isLoggedIn() { return !!this.session(); },
+  currentRole() { return this.session()?.role || 'public'; },
+  currentUser() { return this.session()?.displayName || this.roles[this.currentRole()] || 'Public Viewer'; },
   canWrite() { return ['admin', 'officer'].includes(this.currentRole()); },
   canAdmin() { return this.currentRole() === 'admin'; },
   isPublic() { return this.currentRole() === 'public'; },
@@ -69,14 +90,53 @@ const AccessPolicy = {
   personName(value, label = 'Beneficiary withheld') { return this.isPublic() ? label : (value || '—'); },
   identifier(value, label = 'Withheld') { return this.isPublic() ? label : (value || '—'); },
   narrative(value, label = 'Details withheld in Public view') { return this.isPublic() ? label : (value || '—'); },
+  login(username, password) {
+    const user = this.accounts().find(account =>
+      account.username.toLowerCase() === String(username || '').trim().toLowerCase()
+      && account.password === String(password || '')
+    );
+    if (!user) return false;
+    localStorage.setItem(this.SESSION_KEY, JSON.stringify({
+      username: user.username,
+      displayName: user.displayName || user.username,
+      role: user.role || 'public',
+      loggedInAt: new Date().toISOString(),
+    }));
+    localStorage.setItem('darfo2_role', user.role || 'public');
+    localStorage.setItem('darfo2_user', user.displayName || user.username);
+    this.refreshAccessUI();
+    return true;
+  },
+  logout() {
+    localStorage.removeItem(this.SESSION_KEY);
+    localStorage.setItem('darfo2_role', 'public');
+    localStorage.setItem('darfo2_user', this.roles.public);
+    this.refreshAccessUI();
+    refreshCurrentView();
+    toast('Signed out. Public access is active.');
+  },
   setRole(role) {
+    if (!this.canAdmin()) {
+      toast('Admin login is required to change access level.', 'error');
+      return;
+    }
+    const session = this.session() || {};
+    session.role = role;
+    session.displayName = this.roles[role] || session.displayName || 'Current user';
+    localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
     localStorage.setItem('darfo2_role', role);
-    localStorage.setItem('darfo2_user', this.roles[role] || 'Current user');
-    document.querySelectorAll('.role-badge').forEach(el => { el.textContent = this.label(); });
-    this.apply();
+    localStorage.setItem('darfo2_user', session.displayName);
+    this.refreshAccessUI();
     toast(`Access level: ${this.roles[role]}`);
   },
-  label() { return this.roles[this.currentRole()] || 'Executive View'; },
+  refreshAccessUI() {
+    document.querySelectorAll('.role-badge').forEach(el => { el.textContent = this.label(); });
+    document.querySelectorAll('.current-user-label').forEach(el => { el.textContent = this.currentUser(); });
+    document.querySelectorAll('.auth-state-label').forEach(el => { el.textContent = this.isLoggedIn() ? 'Signed in' : 'Public access'; });
+    document.querySelectorAll('.auth-action-wrap').forEach(el => { el.innerHTML = authActionButton(el.dataset.variant || 'topbar'); });
+    this.apply();
+  },
+  label() { return this.roles[this.currentRole()] || 'Public'; },
   apply() {
     document.body?.setAttribute('data-role', this.currentRole());
     document.querySelectorAll('[data-access]').forEach(el => {
@@ -88,8 +148,9 @@ const AccessPolicy = {
       el.setAttribute('aria-hidden', String(!allowed));
     });
     document.querySelectorAll('input, select, textarea').forEach(el => {
+      const inLogin = !!el.closest('#login-modal');
       const inModal = !!el.closest('.modal-box');
-      if (inModal && !this.canWrite()) el.setAttribute('disabled', 'disabled');
+      if (inModal && !inLogin && !this.canWrite()) el.setAttribute('disabled', 'disabled');
       else if (!el.dataset.locked) el.removeAttribute('disabled');
     });
   }
@@ -124,7 +185,7 @@ function buildSidebar(activePage) {
         <span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.9)">DA-RFO2</span>
       </div>
       <div class="org-name">Department of Agriculture Cagayan Valley</div>
-      <div class="sys-title">iCAMMS</div>
+      <div class="sys-title">iCAMMS - Integrated Climate Adaptation and Crisis Management Monitoring System (iCAMMS)</div>
     </div>
     <nav class="sidebar-nav">
       ${NAV.map(group => `
@@ -144,15 +205,12 @@ function buildSidebar(activePage) {
       `).join('')}
     </nav>
     <div class="sidebar-footer">
-      <label class="sidebar-control">
-        <span>Access Level</span>
-        <select onchange="AccessPolicy.setRole(this.value)">
-          <option value="admin" ${AccessPolicy.currentRole()==='admin'?'selected':''}>Admin</option>
-          <option value="executive" ${AccessPolicy.currentRole()==='executive'?'selected':''}>Executive View</option>
-          <option value="officer" ${AccessPolicy.currentRole()==='officer'?'selected':''}>Report Officer</option>
-          <option value="public" ${AccessPolicy.currentRole()==='public'?'selected':''}>Public</option>
-        </select>
-      </label>
+      <div class="auth-panel">
+        <span class="auth-state-label">${AccessPolicy.isLoggedIn() ? 'Signed in' : 'Public access'}</span>
+        <strong class="current-user-label">${AccessPolicy.currentUser()}</strong>
+        <span>${AccessPolicy.label()}</span>
+        <span class="auth-action-wrap" data-variant="sidebar">${authActionButton('sidebar')}</span>
+      </div>
       <span>DA-RFO2 | PMED</span>
       <span>v1.0 — May 2026</span>
       <span style="margin-top:6px">
@@ -173,9 +231,21 @@ function updateTopbarUtilities() {
   tools.innerHTML = `
     <button class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleMobileNav()" title="Menu">${ICONS.menu}</button>
     <span class="topbar-badge role-badge">${AccessPolicy.label()}</span>
+    <span class="auth-action-wrap">${authActionButton()}</span>
     <button class="btn btn-secondary btn-sm theme-toggle" onclick="Theme.toggle()" title="Toggle dark mode">${Theme.current()==='dark'?ICONS.sun:ICONS.moon}</button>
   `;
   topbar.appendChild(tools);
+}
+
+function authActionButton(variant = 'topbar') {
+  if (variant === 'sidebar') {
+    return AccessPolicy.isLoggedIn()
+      ? `<button class="sidebar-btn" onclick="AccessPolicy.logout()">Sign out</button>`
+      : `<button class="sidebar-btn" onclick="openLoginModal()">Sign in</button>`;
+  }
+  return AccessPolicy.isLoggedIn()
+    ? `<button class="btn btn-secondary btn-sm" onclick="AccessPolicy.logout()" title="Sign out">${ICONS.x}</button>`
+    : `<button class="btn btn-secondary btn-sm" onclick="openLoginModal()" title="Sign in">${ICONS.users}</button>`;
 }
 
 function toggleMobileNav() {
@@ -228,6 +298,51 @@ function syncStatusText() {
 function openStorageSettings() {
   ensureStorageModal();
   openModal('storage-modal');
+}
+
+function ensureLoginModal() {
+  if (document.getElementById('login-modal')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-overlay hidden';
+  wrap.id = 'login-modal';
+  wrap.innerHTML = `
+    <div class="modal-box auth-modal">
+      <div class="modal-header"><span>User Login</span><button class="modal-close" onclick="closeModal('login-modal')">x</button></div>
+      <div class="modal-body">
+        <div class="form-grid cols-1">
+          <div class="form-group"><label class="form-label">Username</label><input id="login-username" autocomplete="username"></div>
+          <div class="form-group"><label class="form-label">Password</label><input id="login-password" type="password" autocomplete="current-password"></div>
+        </div>
+        <div class="sync-status">Access is granted according to the account role: Admin, Report Officer, Executive View, or Public.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('login-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitLogin()">Sign in</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  wrap.addEventListener('keydown', event => {
+    if (event.key === 'Enter') submitLogin();
+  });
+}
+
+function openLoginModal() {
+  ensureLoginModal();
+  openModal('login-modal');
+  setTimeout(() => document.getElementById('login-username')?.focus(), 0);
+}
+
+function submitLogin() {
+  const username = document.getElementById('login-username')?.value || '';
+  const password = document.getElementById('login-password')?.value || '';
+  if (!AccessPolicy.login(username, password)) {
+    toast('Invalid username or password.', 'error');
+    return;
+  }
+  closeModal('login-modal');
+  toast(`Signed in as ${AccessPolicy.currentUser()} (${AccessPolicy.label()})`);
+  refreshCurrentView();
 }
 
 function saveStorageSettings(options = {}) {
@@ -373,7 +488,7 @@ function toast(msg, type='success') {
 
 // ── Modal helpers ─────────────────────────────────────────────────
 function openModal(id)  {
-  if (id !== 'storage-modal' && !AccessPolicy.canWrite()) {
+  if (!['storage-modal', 'login-modal'].includes(id) && !AccessPolicy.canWrite()) {
     toast('This access level is read-only. Switch to Report Officer or Admin to enter data.', 'error');
     return;
   }

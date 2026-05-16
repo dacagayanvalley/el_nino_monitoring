@@ -125,7 +125,7 @@ const DB = {
     const settings = this.settings();
     if (!settings.appsScriptEndpoint) return { ok: false, message: 'Paste the Google Apps Script Web App URL first.' };
     const tables = Object.entries(this.KEYS).reduce((acc, [name, key]) => {
-      acc[name] = this.get(key);
+      acc[this.tableNameFromKey(key)] = this.get(key);
       return acc;
     }, {});
     try {
@@ -179,15 +179,18 @@ const DB = {
       let matchedTabs = 0;
       Object.entries(this.KEYS).forEach(([name, key]) => {
         const candidates = [
-          name,
-          key,
           this.tableNameFromKey(key),
+          key,
+          name,
           this.tableNameFromKey(name),
         ].map(value => this.normalizeTableName(value));
-        const matchedKey = candidates.find(candidate => Array.isArray(normalizedTables[candidate]));
-        if (!matchedKey) return;
-        this.set(key, normalizedTables[matchedKey]);
-        matchedTabs += 1;
+        const matchedRows = candidates
+          .filter((candidate, index, all) => all.indexOf(candidate) === index)
+          .filter(candidate => Array.isArray(normalizedTables[candidate]))
+          .map(candidate => normalizedTables[candidate]);
+        if (!matchedRows.length) return;
+        this.set(key, this.mergeRowsById(matchedRows));
+        matchedTabs += matchedRows.length;
       });
       if (!matchedTabs && Object.keys(tables).length) {
         throw new Error('No recognizable Sheet tabs were found. Confirm the Sheet uses app-generated tabs or push one record first.');
@@ -210,6 +213,20 @@ const DB = {
 
   normalizeTableName(name) {
     return String(name || '').replace(/^darfo2_/i, '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  },
+
+  mergeRowsById(rowGroups) {
+    const byId = new Map();
+    const withoutId = [];
+    rowGroups.flat().forEach(row => {
+      if (!row || typeof row !== 'object') return;
+      if (!row.id) {
+        withoutId.push(row);
+        return;
+      }
+      if (!byId.has(String(row.id))) byId.set(String(row.id), row);
+    });
+    return [...byId.values(), ...withoutId];
   },
 
   get(key) {
@@ -416,7 +433,7 @@ const DB = {
     // Superimposed trials
     const trials = [
       { id:'tr1', municipality:'Cauayan City',  province:'Isabela',      crop:'Mungbean', variety:'Pag-asa 7', pot:'Zero Tillage + Biofertilizer', plantingDate:'2026-05-21', farmer:'Cauayan FCA', baseline:'Drought-affected, loam soil', currentStatus:'Vegetative', yieldEst:0, costConventional:4500, costPOT:2800, lessonsNoted:'Zero tillage reduced land prep cost significantly', createdAt:'2026-05-21' },
-      { id:'tr2', municipality:'Ilagan City',   province:'Isabela',      crop:'Mungbean', variety:'Pag-asa 7', pot:'Zero Tillage only',            plantingDate:'2026-05-22', farmer:'Pedro Aquino',farmer:'Ilagan FCA', baseline:'Sandy loam, low rainfall', currentStatus:'Vegetative', yieldEst:0, costConventional:4200, costPOT:2600, lessonsNoted:'Good germination with zero tillage', createdAt:'2026-05-22' },
+      { id:'tr2', municipality:'Ilagan City',   province:'Isabela',      crop:'Mungbean', variety:'Pag-asa 7', pot:'Zero Tillage only',            plantingDate:'2026-05-22', farmer:'Ilagan FCA', baseline:'Sandy loam, low rainfall', currentStatus:'Vegetative', yieldEst:0, costConventional:4200, costPOT:2600, lessonsNoted:'Good germination with zero tillage', createdAt:'2026-05-22' },
       { id:'tr3', municipality:'Bayombong',     province:'Nueva Vizcaya',crop:'Mungbean', variety:'Pag-asa 7', pot:'Biofertilizer + BCA',          plantingDate:'2026-05-25', farmer:'Bayombong FCA',baseline:'Moderate drought, clay loam', currentStatus:'Germination', yieldEst:0, costConventional:5000, costPOT:3200, lessonsNoted:'BCA application at emergence stage observed', createdAt:'2026-05-25' },
     ];
     this.set(this.KEYS.TRIALS, trials);

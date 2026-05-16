@@ -96,7 +96,7 @@ body {
 .sidebar {
   width: var(--sidebar-w);
   background: var(--green-900);
-  color: var(--white);
+  color: #fff;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -117,8 +117,8 @@ body {
   margin-bottom: 10px;
 }
 .sidebar-logo .logo-badge svg { width:20px; height:20px; flex-shrink:0; }
-.sidebar-logo .org-name { font-size:.72rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.7); }
-.sidebar-logo .sys-title { font-size:.9rem; font-weight:700; line-height:1.2; color:var(--white); margin-top:4px; }
+.sidebar-logo .org-name { font-size:.72rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.74); }
+.sidebar-logo .sys-title { font-size:.82rem; font-weight:800; line-height:1.25; color:#fff; margin-top:6px; text-shadow:0 1px 2px rgba(0,0,0,.35); }
 
 .sidebar-nav { flex:1; padding: 8px 0; }
 .nav-group-label {
@@ -151,7 +151,11 @@ body {
 .sidebar-control { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; color:rgba(255,255,255,.65); font-size:.7rem; font-weight:600; }
 .sidebar-control select { background:rgba(255,255,255,.08); color:var(--white); border-color:rgba(255,255,255,.15); font-size:.76rem; padding:5px 8px; }
 .sidebar-control option { color:#111827; }
-.sidebar-btn { width:100%; justify-content:center; margin-bottom:10px; background:rgba(255,255,255,.1); color:var(--white); }
+.auth-panel { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; color:rgba(255,255,255,.68); }
+.auth-panel strong { color:#fff; font-size:.78rem; line-height:1.25; }
+.auth-panel .auth-action-wrap { display:block; margin-top:4px; }
+.sidebar-btn { width:100%; justify-content:center; margin-bottom:8px; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.18); border-radius:var(--radius); padding:6px 10px; font-size:.76rem; font-weight:700; cursor:pointer; }
+.sidebar-btn:hover { background:rgba(255,255,255,.2); }
 
 .main-content {
   margin-left: var(--sidebar-w);
